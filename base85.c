@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+/// Ascii85 alphabet.
 static const unsigned char g_ascii85[] = {
   '!', '"', '#', '$', '%', '&', '\'', '(',
   ')', '*', '+', ',', '-', '.', '/', '0',
@@ -21,8 +22,8 @@ static const unsigned char g_ascii85[] = {
 size_t
 base85_required_buffer_size (size_t input_size)
 {
-  size_t s = input_size + (input_size / 4);
-  return 1 + (((s + 4) / 5) * 5);
+  size_t s = ((input_size + 3) / 4) * 4;
+  return 1 + s + (s / 4);
 }
 
 /// Encodes @a cb_b characters from @a b, and stores the result in @a out.
