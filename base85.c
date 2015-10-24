@@ -67,7 +67,8 @@ base85_encode (const char *b, size_t cb_b, char *out)
 int
 main (int argc, char *argv[])
 {
-  if (2 != argc) return -2;
+  if (2 != argc)
+    return 2;
 
   char *buffer;
 
