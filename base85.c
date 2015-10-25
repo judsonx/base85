@@ -100,34 +100,6 @@ base85_encode (const char *b, size_t cb_b, char *out)
   *out = 0;
 }
 
-/// Adjusts @a b and @a cb_b to account for possible ascii85 header and footer.
-/// Note, the footer is only considered if a header is found.
-bool
-base85_header_footer_adjust (const char **b, size_t *cb_b)
-{
-  // Adjust for possible header.
-  if (*cb_b > 1)
-  {
-    if ('<' == (*b)[0] && '~' == (*b)[1])
-    {
-      *b += 2;
-      *cb_b -= 2;
-
-      // Adjust for possible footer.
-      if (*cb_b > 1)
-      {
-        if ('~' == (*b)[*cb_b - 2] && '>' == (*b)[*cb_b - 1])
-        {
-          *cb_b -= 2;
-        }
-      }
-      return true;
-    }
-  }
-
-  return false;
-}
-
 /// Decodes @a cb_b chatacters from @a b, and stores the result in @a out.
 /// @pre @a b must contain at least @a cb_b bytes, and @a out must be large
 /// enough to hold the result (including room for NUL terminator).
@@ -198,54 +170,64 @@ base85_decode (const char *b, size_t cb_b, char *out, size_t *out_cb)
 int
 usage (const char *name)
 {
-  fprintf (stderr, "Usage: %s -e input | -d input\n", name);
+  fprintf (stderr, "Usage: %s -e | -d\n", name);
   return 2;
 }
 
 int
 main (int argc, char *argv[])
 {
-  if (3 != argc)
+  if (2 != argc)
     return usage (argv[0]);
 
-  const size_t input_len = strlen (argv[2]);
+  // Should be divisible by 4.
+  static const size_t INPUT_BUFFER_MAX = 1024;
+
+  // Should be divisible by 5.
+  static const size_t INPUT_BUFFER_DECODE_MAX = 1000;
+
+  char input[INPUT_BUFFER_MAX];
 
   if (!strcmp (argv[1], "-e"))
   {
-    const size_t bufsize = base85_required_buffer_size (input_len);
-    char *buffer = malloc (bufsize);
-    if (!buffer)
-      return 1;
+    size_t input_cb;
+    while ((input_cb = read (0, input, INPUT_BUFFER_MAX)))
+    {
+      const size_t bufsize = base85_required_buffer_size (input_cb);
+      char *buffer = malloc (bufsize);
+      if (!buffer)
+        return 1;
 
-    base85_encode (argv[2], input_len, buffer);
-    printf ("<~%s~>\n", buffer);
-    free (buffer);
+      base85_encode (input, input_cb, buffer);
+      printf ("%s", buffer);
+      free (buffer);
+    }
   }
   else if (!strcmp (argv[1], "-d"))
   {
-    size_t cb = 0;
-    const char *input = argv[2];
-    size_t input_cb = input_len;
-    (void) base85_header_footer_adjust (&input, &input_cb);
-    if (base85_decode (input, input_cb, NULL, &cb))
+    size_t input_cb;
+    while ((input_cb = read (0, input, INPUT_BUFFER_DECODE_MAX)))
     {
-      fprintf (stderr, "Decoding error\n");
-      return 0;
-    }
-    char *buffer = malloc (cb + 4);
-    if (!buffer)
-      return 1;
+      size_t cb = 0;
+      if (base85_decode (input, input_cb, NULL, &cb))
+      {
+        fprintf (stderr, "Decoding error\n");
+        return 0;
+      }
+      char *buffer = malloc (cb + 4);
+      if (!buffer)
+        return 1;
 
-    if (base85_decode (input, input_cb, buffer, &cb))
-    {
-      fprintf (stderr, "Unexpected decoding error\n");
+      if (base85_decode (input, input_cb, buffer, &cb))
+      {
+        fprintf (stderr, "Unexpected decoding error\n");
+        free (buffer);
+        return 1;
+      }
+
+      (void) write (1, buffer, cb);
       free (buffer);
-      return 1;
     }
-
-    (void) write (1, buffer, cb);
-
-    free (buffer);
   }
 
   return 0;
