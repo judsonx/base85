@@ -24,6 +24,7 @@ main (int argc, char *argv[])
   // Should be divisible by 5.
   static const size_t INPUT_BUFFER_DECODE_MAX = 1000;
 
+  char *buffer = NULL;
   char input[INPUT_BUFFER_MAX];
 
   if (!strcmp (argv[1], "-e"))
@@ -32,13 +33,12 @@ main (int argc, char *argv[])
     while ((input_cb = read (0, input, INPUT_BUFFER_MAX)))
     {
       const size_t bufsize = base85_required_buffer_size (input_cb);
-      char *buffer = malloc (bufsize);
+      buffer = realloc (buffer, bufsize);
       if (!buffer)
         return 1;
 
       base85_encode (input, input_cb, buffer);
       printf ("%s", buffer);
-      free (buffer);
     }
   }
   else if (!strcmp (argv[1], "-d"))
@@ -52,7 +52,7 @@ main (int argc, char *argv[])
         fprintf (stderr, "Decoding error\n");
         return 0;
       }
-      char *buffer = malloc (cb + 4);
+      buffer = realloc (buffer, cb + 4);
       if (!buffer)
         return 1;
 
@@ -64,9 +64,9 @@ main (int argc, char *argv[])
       }
 
       (void) write (1, buffer, cb);
-      free (buffer);
     }
   }
 
+  free (buffer);
   return 0;
 }
