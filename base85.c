@@ -35,19 +35,6 @@ base85_whitespace (char c)
 }
 
 static bool
-base85_skipws (const char **b, size_t *cb_b)
-{
-  while (*cb_b)
-  {
-    if (!base85_whitespace (**b))
-      return true;
-    ++(*b);
-    --(*cb_b);
-  }
-  return false;
-}
-
-static bool
 base85_decode_valid_char (char c)
 {
   return (c > 32) && (c < 118);
@@ -100,7 +87,21 @@ base85_encode (const char *b, size_t cb_b, char *out)
   *out = 0;
 }
 
-/// Decodes @a cb_b chatacters from @a b, and stores the result in @a out.
+/// Decodes exactly 5 bytes from @a b and stores 4 bytes in @a out.
+static void
+base85_decode_strict (const char *b, char *out)
+{
+  static const unsigned int tbl[] = { 0x31c84b1, 0x95eed, 0x1c39, 0x55, 0x01 };
+
+  unsigned int v = 0;
+  for (int c = 0; c < 5; ++c)
+    v += (*b++ - 33) * tbl[c];
+
+  for (int c = 24; c >= 0; c -= 8)
+    *out++ = (v >> c) & 0xff;
+}
+
+/// Decodes @a cb_b characters from @a b, and stores the result in @a out.
 /// @pre @a b must contain at least @a cb_b bytes, and @a out must be large
 /// enough to hold the result (including room for NUL terminator).
 /// @return 0 for success, and the number of bytes written is returned
@@ -111,19 +112,18 @@ base85_encode (const char *b, size_t cb_b, char *out)
 int
 base85_decode (const char *b, size_t cb_b, char *out, size_t *out_cb)
 {
-  static const unsigned int tbl[] = { 0x31c84b1, 0x95eed, 0x1c39, 0x55, 0x01 };
-
   if (!b || !out_cb)
     return -1;
 
-  size_t padding = 0;
-
-  // Number of bytes written to @a out.
+  char a[5];
+  size_t pos = 0;
   size_t cb = 0;
-
-  while (base85_skipws (&b, &cb_b))
+  while (cb_b--)
   {
-    if ('z' == *b)
+    char c = *b++;
+
+    // Special case for 'z'.
+    if ('z' == c && !pos)
     {
       if (out)
       {
@@ -131,39 +131,38 @@ base85_decode (const char *b, size_t cb_b, char *out, size_t *out_cb)
         out += 4;
       }
       cb += 4;
-      ++b;
-      --cb_b;
       continue;
     }
 
-    unsigned int v = 0;
-    for (int c = 0; c < 5; ++c)
-    {
-      if (base85_skipws (&b, &cb_b))
-      {
-        if (!base85_decode_valid_char (*b))
-          return -1;
+    if (base85_whitespace (c))
+      continue;
 
-        v += (*b++ - 33) * tbl[c];
-        --cb_b;
-      }
-      else
-      {
-        // 0x54 = 'u' - 33
-        v += 0x54 * tbl[c];
-        ++padding;
-      }
-    }
+    if (!base85_decode_valid_char (c))
+      return -1;
 
-    for (int c = 24; c >= 0; c -= 8)
+    a[pos++] = c;
+    if (5 == pos)
     {
       if (out)
-        *out++ = (v >> c) & 0xff;
-      ++cb;
+      {
+        base85_decode_strict (a, out);
+        out += 4;
+      }
+      cb += 4;
+      pos = 0;
     }
   }
 
-  *out_cb = cb - padding;
+  // pos contains the number of items in a.
+  if (pos && out)
+  {
+    for (int i = pos; i < 5; ++i)
+      a[i] = 'u';
+
+    base85_decode_strict (a, out);
+  }
+
+  *out_cb = cb += pos;
   return 0;
 }
 
