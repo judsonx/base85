@@ -58,7 +58,7 @@ main (int argc, char *argv[])
 
       if (base85_decode (input, input_cb, buffer, &cb))
       {
-        fprintf (stderr, "Decoding error (overflow)\n");
+        fprintf (stderr, "Decoding error\n");
         free (buffer);
         return 1;
       }

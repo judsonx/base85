@@ -2,6 +2,8 @@
 
 #include <stdbool.h>
 
+#define dimof(x) (sizeof(x) / sizeof(*x))
+
 /// Ascii85 alphabet.
 static const unsigned char g_ascii85_encode[] = {
   '!', '"', '#', '$', '%', '&', '\'', '(',
@@ -17,6 +19,25 @@ static const unsigned char g_ascii85_encode[] = {
   'q', 'r', 's', 't', 'u', 
 };
 
+/// Ascii85 decode array. Zero indicates an invalid entry.
+/// @see base85_decode_init()
+static unsigned char g_ascii85_decode[256];
+
+/// Initializer for g_ascii85_decode (may be called multiple times).
+static void
+base85_decode_init ()
+{
+  if (g_ascii85_decode['u'])
+    return;
+
+  // NOTE: Assumes g_ascii85_decode[] was implicitly initialized with zeros.
+  for (size_t i = 0; i < dimof (g_ascii85_encode); ++i)
+  {
+    unsigned char c = g_ascii85_encode[i];
+    g_ascii85_decode[c] = i + 1;
+  }
+}
+
 /// Returns true if @a c is a white space character.
 static bool
 base85_whitespace (char c)
@@ -30,12 +51,6 @@ base85_whitespace (char c)
     return true;
   }
   return false;
-}
-
-static bool
-base85_decode_valid_char (char c)
-{
-  return (c > 32) && (c < 118);
 }
 
 size_t
@@ -89,11 +104,15 @@ base85_decode_strict (const char *b, char *out)
   unsigned char x;
   for (int c = 0; c < 4; ++c)
   {
-    x = *b++ - 33;
+    x = g_ascii85_decode[(unsigned) *b++];
+    if (!x--)
+      return -1;
     v = v * 85 + x;
   }
 
-  x = *b - 33;
+  x = g_ascii85_decode[(unsigned) *b];
+  if (!x--)
+    return -1;
 
   // Check for overflow.
   if ((0xffffffff / 85 < v) || (0xffffffff - x < (v *= 85)))
@@ -112,6 +131,8 @@ base85_decode (const char *b, size_t cb_b, char *out, size_t *out_cb)
 {
   if (!b || !out_cb)
     return -1;
+
+  base85_decode_init ();
 
   char a[5];
   size_t pos = 0;
@@ -134,9 +155,6 @@ base85_decode (const char *b, size_t cb_b, char *out, size_t *out_cb)
 
     if (base85_whitespace (c))
       continue;
-
-    if (!base85_decode_valid_char (c))
-      return -1;
 
     a[pos++] = c;
     if (5 == pos)
