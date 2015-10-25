@@ -1,0 +1,6 @@
+cflags = -Wall -g
+
+rule cc
+  command = cc $cflags -I./ $in -o $out
+
+build bin/base85: cc src/main.c lib/base85.c
