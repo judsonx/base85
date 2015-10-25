@@ -81,17 +81,30 @@ base85_encode (const char *b, size_t cb_b, char *out)
 }
 
 /// Decodes exactly 5 bytes from @a b and stores 4 bytes in @a out.
-static void
+/// @return -1 on overflow.
+static int
 base85_decode_strict (const char *b, char *out)
 {
-  static const unsigned int tbl[] = { 0x31c84b1, 0x95eed, 0x1c39, 0x55, 0x01 };
-
   unsigned int v = 0;
-  for (int c = 0; c < 5; ++c)
-    v += (*b++ - 33) * tbl[c];
+  unsigned char x;
+  for (int c = 0; c < 4; ++c)
+  {
+    x = *b++ - 33;
+    v = v * 85 + x;
+  }
+
+  x = *b - 33;
+
+  // Check for overflow.
+  if ((0xffffffff / 85 < v) || (0xffffffff - x < (v *= 85)))
+    return -1;
+
+  v += x;
 
   for (int c = 24; c >= 0; c -= 8)
     *out++ = (v >> c) & 0xff;
+
+  return 0;
 }
 
 int
@@ -130,7 +143,8 @@ base85_decode (const char *b, size_t cb_b, char *out, size_t *out_cb)
     {
       if (out)
       {
-        base85_decode_strict (a, out);
+        if (base85_decode_strict (a, out))
+          return -1;
         out += 4;
       }
       cb += 4;
@@ -139,14 +153,18 @@ base85_decode (const char *b, size_t cb_b, char *out, size_t *out_cb)
   }
 
   // pos contains the number of items in a.
-  if (pos && out)
+  if (pos)
   {
     for (int i = pos; i < 5; ++i)
       a[i] = 'u';
 
-    base85_decode_strict (a, out);
+    if (out && base85_decode_strict (a, out))
+      return -1;
+
+    cb = cb + 4 - (5 - pos);
   }
 
-  *out_cb = cb += pos;
+
+  *out_cb = cb;
   return 0;
 }
