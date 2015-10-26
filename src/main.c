@@ -23,27 +23,33 @@ main (int argc, char *argv[])
 
   char input[INPUT_BUFFER_MAX];
 
+  struct base85_context_t ctx;
+  if (base85_context_init (&ctx))
+    return 1;
+
   if (!strcmp (argv[1], "-e"))
   {
-    char *buffer = NULL;
     size_t input_cb;
     while ((input_cb = read (0, input, INPUT_BUFFER_MAX)))
     {
-      const size_t bufsize = base85_required_buffer_size (input_cb);
-      buffer = realloc (buffer, bufsize);
-      if (!buffer)
+      if (base85_encode (input, input_cb, &ctx))
+      {
+        fprintf (stderr, "Encoding error\n");
+        base85_context_destroy (&ctx);
         return 1;
-
-      base85_encode (input, input_cb, buffer);
-      printf ("%s\n", buffer);
+      }
     }
-    free (buffer);
+    if (base85_encode_last (&ctx))
+    {
+      fprintf (stderr, "Encoding error (last)\n");
+      base85_context_destroy (&ctx);
+      return 1;
+    }
+
+    printf ("%s\n", ctx.out);
   }
   else if (!strcmp (argv[1], "-d"))
   {
-    struct base85_decode_context_t ctx;
-    if (base85_decode_context_init (&ctx))
-      return 1;
 
     size_t input_cb;
     while ((input_cb = read (0, input, INPUT_BUFFER_MAX)))
@@ -51,20 +57,20 @@ main (int argc, char *argv[])
       if (base85_decode (input, input_cb, &ctx))
       {
         fprintf (stderr, "Decoding error\n");
-        base85_decode_context_destroy (&ctx);
+        base85_context_destroy (&ctx);
         return 1;
       }
     }
     if (base85_decode_last (&ctx))
     {
       fprintf (stderr, "Decoding error (last)\n");
-      base85_decode_context_destroy (&ctx);
+      base85_context_destroy (&ctx);
       return 1;
     } 
     size_t out_cb = ctx.out_pos - ctx.out;
     (void) write (1, ctx.out, out_cb);
-    base85_decode_context_destroy (&ctx);
   }
 
+  base85_context_destroy (&ctx);
   return 0;
 }

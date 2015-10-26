@@ -55,14 +55,16 @@ base85_whitespace (char c)
   return false;
 }
 
+/// Returns the number of free bytes in the context's output buffer.
 static ptrdiff_t
-base85_decode_out_bytes_remaining (struct base85_decode_context_t *ctx)
+base85_context_bytes_remaining (struct base85_context_t *ctx)
 {
   return (ctx->out + ctx->out_cb) - ctx->out_pos;
 }
 
+/// Increases the size of the context's output buffer.
 static int
-base85_decode_context_grow_out (struct base85_decode_context_t *ctx)
+base85_context_grow (struct base85_context_t *ctx)
 {
   // TODO: Refine size, and fallback strategy.
   size_t size = ctx->out_cb * 2;
@@ -78,7 +80,7 @@ base85_decode_context_grow_out (struct base85_decode_context_t *ctx)
 }
 
 int
-base85_decode_context_init (struct base85_decode_context_t *ctx)
+base85_context_init (struct base85_context_t *ctx)
 {
   static size_t INITIAL_BUFFER_SIZE = 1024;
 
@@ -98,7 +100,7 @@ base85_decode_context_init (struct base85_decode_context_t *ctx)
 }
 
 void
-base85_decode_context_destroy (struct base85_decode_context_t *ctx)
+base85_context_destroy (struct base85_context_t *ctx)
 {
   char *out = ctx->out;
   ctx->out = NULL;
@@ -114,54 +116,98 @@ base85_required_buffer_size (size_t input_size)
   return 1 + s + (s / 4);
 }
 
-void
-base85_encode (const char *b, size_t cb_b, char *out)
+static int
+base85_encode_strict (struct base85_context_t *ctx)
 {
-  unsigned int v;
-  while (cb_b)
+  unsigned int v = 0;
+  v |= (unsigned char) ctx->hold[0] << 24;
+  v |= (unsigned char) ctx->hold[1] << 16;
+  v |= (unsigned char) ctx->hold[2] << 8;
+  v |= (unsigned char) ctx->hold[3];
+
+  ctx->pos = 0;
+
+  if (!v)
   {
-    v = 0;
-    size_t start_cb = cb_b;
-    size_t padding = 0;
-    for (int c = 24; c >= 0; c -= 8)
+    if (base85_context_bytes_remaining (ctx) < 1)
     {
-      // Cast to prevent sign extension.
-      v |= (unsigned char) *b++ << c;
-      if (!--cb_b)
-      {
-        padding = 4 - start_cb;
-        break;
-      }
+      if (base85_context_grow (ctx))
+        return -1;
     }
-
-    if (!v)
-    {
-      *out++ = 'z';
-      continue;
-    }
-
-    for (int c = 4; c >= 0; --c)
-    {
-      out[c] = g_ascii85_encode[v % 85];
-      v /= 85;
-    }
-    out += 5 - padding;
+    *ctx->out_pos = 'z';
+    ctx->out_pos++;
+    return 0;
   }
-  *out = 0;
+
+  if (base85_context_bytes_remaining (ctx) < 5)
+  {
+    if (base85_context_grow (ctx))
+      return -1;
+  }
+
+  for (int c = 4; c >= 0; --c)
+  {
+    ctx->out_pos[c] = g_ascii85_encode[v % 85];
+    v /= 85;
+  }
+  ctx->out_pos += 5;
+  return 0;
 }
 
-/// Decodes exactly 5 bytes from @a b and stores 4 bytes in @a out.
+int
+base85_encode (const char *b, size_t cb_b, struct base85_context_t *ctx)
+{
+  while (cb_b--)
+  {
+    ctx->hold[ctx->pos++] = *b++;
+    if (4 == ctx->pos)
+    {
+      if (base85_encode_strict (ctx))
+        return -1;
+    }
+  }
+
+  return 0;
+}
+
+int
+base85_encode_last (struct base85_context_t *ctx)
+{
+  size_t pos = ctx->pos;
+  if (!pos)
+  {
+    if (base85_context_bytes_remaining (ctx) < 1)
+    {
+      if (base85_context_grow (ctx))
+        return -1;
+    }
+    *ctx->out_pos = 0;
+    return 0;
+  }
+
+  for (size_t i = pos; i < 4; ++i)
+    ctx->hold[i] = 0;
+
+  if (base85_encode_strict (ctx))
+    return -1;
+
+  ctx->out_pos -= 4 - pos;
+  *ctx->out_pos = 0;
+  return 0;
+}
+
+/// Decodes exactly 5 bytes from the decode context.
 /// @return -1 on overflow.
 static int
-base85_decode_strict (struct base85_decode_context_t *ctx)
+base85_decode_strict (struct base85_context_t *ctx)
 {
   unsigned int v = 0;
   unsigned char x;
   char *b = ctx->hold;
 
-  if (base85_decode_out_bytes_remaining (ctx) < 4)
+  if (base85_context_bytes_remaining (ctx) < 4)
   {
-    if (base85_decode_context_grow_out (ctx))
+    if (base85_context_grow (ctx))
       return -1;
   }
 
@@ -194,7 +240,7 @@ base85_decode_strict (struct base85_decode_context_t *ctx)
 }
 
 int
-base85_decode (const char *b, size_t cb_b, struct base85_decode_context_t *ctx)
+base85_decode (const char *b, size_t cb_b, struct base85_context_t *ctx)
 {
   if (!b || !ctx)
     return -1;
@@ -206,9 +252,9 @@ base85_decode (const char *b, size_t cb_b, struct base85_decode_context_t *ctx)
     // Special case for 'z'.
     if ('z' == c && !ctx->pos)
     {
-      if (base85_decode_out_bytes_remaining (ctx) < 4)
+      if (base85_context_bytes_remaining (ctx) < 4)
       {
-        if (base85_decode_context_grow_out (ctx))
+        if (base85_context_grow (ctx))
           return -1;
       }
 
@@ -232,7 +278,7 @@ base85_decode (const char *b, size_t cb_b, struct base85_decode_context_t *ctx)
 }
 
 int
-base85_decode_last (struct base85_decode_context_t *ctx)
+base85_decode_last (struct base85_context_t *ctx)
 {
   size_t pos = ctx->pos;
 
