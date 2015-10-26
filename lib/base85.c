@@ -21,6 +21,8 @@ static const unsigned char g_ascii85_encode[] = {
   'q', 'r', 's', 't', 'u', 
 };
 
+static const char BASE85_ZERO_CHAR = 'z';
+
 /// Ascii85 decode array. Zero indicates an invalid entry.
 /// @see base85_decode_init()
 static unsigned char g_ascii85_decode[256];
@@ -134,7 +136,7 @@ base85_encode_strict (struct base85_context_t *ctx)
       if (base85_context_grow (ctx))
         return -1;
     }
-    *ctx->out_pos = 'z';
+    *ctx->out_pos = BASE85_ZERO_CHAR;
     ctx->out_pos++;
     return 0;
   }
@@ -250,7 +252,7 @@ base85_decode (const char *b, size_t cb_b, struct base85_context_t *ctx)
     char c = *b++;
 
     // Special case for 'z'.
-    if ('z' == c && !ctx->pos)
+    if (BASE85_ZERO_CHAR == c && !ctx->pos)
     {
       if (base85_context_bytes_remaining (ctx) < 4)
       {
