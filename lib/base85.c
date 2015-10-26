@@ -71,7 +71,8 @@ base85_encode (const char *b, size_t cb_b, char *out)
     size_t padding = 0;
     for (int c = 24; c >= 0; c -= 8)
     {
-      v |= *b++ << c;
+      // Cast to prevent sign extension.
+      v |= (unsigned char) *b++ << c;
       if (!--cb_b)
       {
         padding = 4 - start_cb;
