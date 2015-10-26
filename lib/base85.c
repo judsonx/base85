@@ -6,6 +6,23 @@
 
 #define dimof(x) (sizeof(x) / sizeof(*x))
 
+const char *
+base85_error_string (b85_result_t val)
+{
+  static const char *m[] = {
+    "Sucess", // B85_E_OK
+    "Out of memory", //B85_E_OOM
+    "Byte sequence resulted in an overflow", //B85_E_OVERFLOW
+    "Invalid character", // B85_E_INVALID_CHAR
+    "Logic error", // B85_E_LOGIC_ERROR
+    "API misuse", // B85_E_API_MISUSE
+  };
+
+  if (val > 0 && val < dimof (m))
+    return m[val];
+
+  return "Unspecified error";
+}
 /// Ascii85 alphabet.
 static const unsigned char g_ascii85_encode[] = {
   '!', '"', '#', '$', '%', '&', '\'', '(',
@@ -65,7 +82,7 @@ base85_context_bytes_remaining (struct base85_context_t *ctx)
 }
 
 /// Increases the size of the context's output buffer.
-static int
+static b85_result_t
 base85_context_grow (struct base85_context_t *ctx)
 {
   // TODO: Refine size, and fallback strategy.
@@ -73,15 +90,15 @@ base85_context_grow (struct base85_context_t *ctx)
   ptrdiff_t offset = ctx->out_pos - ctx->out;
   char *buffer = realloc (ctx->out, size);
   if (!buffer)
-    return -1;
+    return B85_E_OOM;
 
   ctx->out = buffer;
   ctx->out_cb = size;
   ctx->out_pos = ctx->out + offset;
-  return 0;
+  return B85_E_OK;
 }
 
-int
+b85_result_t
 base85_context_init (struct base85_context_t *ctx)
 {
   static size_t INITIAL_BUFFER_SIZE = 1024;
@@ -89,16 +106,16 @@ base85_context_init (struct base85_context_t *ctx)
   base85_decode_init ();
 
   if (!ctx)
-    return -1;
+    return B85_E_API_MISUSE;
 
   ctx->pos = 0;
   ctx->out = malloc (INITIAL_BUFFER_SIZE);
   if (!ctx->out)
-    return -1;
+    return B85_E_OOM;
 
   ctx->out_pos = ctx->out;
   ctx->out_cb = INITIAL_BUFFER_SIZE;
-  return 0;
+  return B85_E_OK;
 }
 
 void
@@ -118,7 +135,7 @@ base85_required_buffer_size (size_t input_size)
   return 1 + s + (s / 4);
 }
 
-static int
+static b85_result_t
 base85_encode_strict (struct base85_context_t *ctx)
 {
   unsigned char *h = ctx->hold;
@@ -130,18 +147,18 @@ base85_encode_strict (struct base85_context_t *ctx)
   {
     if (base85_context_bytes_remaining (ctx) < 1)
     {
-      if (base85_context_grow (ctx))
-        return -1;
+      b85_result_t rv = base85_context_grow (ctx);
+      if (rv) return rv;
     }
     *ctx->out_pos = BASE85_ZERO_CHAR;
     ctx->out_pos++;
-    return 0;
+    return B85_E_OK;
   }
 
   if (base85_context_bytes_remaining (ctx) < 5)
   {
-    if (base85_context_grow (ctx))
-      return -1;
+    b85_result_t rv = base85_context_grow (ctx);
+    if (rv) return rv;
   }
 
   for (int c = 4; c >= 0; --c)
@@ -150,54 +167,63 @@ base85_encode_strict (struct base85_context_t *ctx)
     v /= 85;
   }
   ctx->out_pos += 5;
-  return 0;
+  return B85_E_OK;
 }
 
-int
+b85_result_t
 base85_encode (const char *b, size_t cb_b, struct base85_context_t *ctx)
 {
+  if (!ctx || (cb_b && !b))
+    return B85_E_API_MISUSE;
+
+  if (!cb_b)
+    return B85_E_OK;
+
   while (cb_b--)
   {
     ctx->hold[ctx->pos++] = *b++;
     if (4 == ctx->pos)
     {
-      if (base85_encode_strict (ctx))
-        return -1;
+      b85_result_t rv = base85_encode_strict (ctx);
+      if (rv) return rv;
     }
   }
 
-  return 0;
+  return B85_E_OK;
 }
 
-int
+b85_result_t
 base85_encode_last (struct base85_context_t *ctx)
 {
+  if (!ctx)
+    return B85_E_API_MISUSE;
+
+  b85_result_t rv = B85_E_UNSPECIFIED;
   size_t pos = ctx->pos;
   if (!pos)
   {
     if (base85_context_bytes_remaining (ctx) < 1)
     {
-      if (base85_context_grow (ctx))
-        return -1;
+      rv = base85_context_grow (ctx);
+      if (rv) return rv;
     }
     *ctx->out_pos = 0;
-    return 0;
+    return B85_E_OK;
   }
 
   for (size_t i = pos; i < 4; ++i)
     ctx->hold[i] = 0;
 
-  if (base85_encode_strict (ctx))
-    return -1;
+  rv = base85_encode_strict (ctx);
+  if (rv) return rv;
 
   ctx->out_pos -= 4 - pos;
   *ctx->out_pos = 0;
-  return 0;
+  return B85_E_OK;
 }
 
 /// Decodes exactly 5 bytes from the decode context.
-/// @return -1 on overflow.
-static int
+static b85_result_t
 base85_decode_strict (struct base85_context_t *ctx)
 {
   unsigned int v = 0;
@@ -206,25 +232,25 @@ base85_decode_strict (struct base85_context_t *ctx)
 
   if (base85_context_bytes_remaining (ctx) < 4)
   {
-    if (base85_context_grow (ctx))
-      return -1;
+    b85_result_t rv = base85_context_grow (ctx);
+    if (rv) return rv;
   }
 
   for (int c = 0; c < 4; ++c)
   {
     x = g_ascii85_decode[(unsigned) *b++];
     if (!x--)
-      return -1;
+      return B85_E_INVALID_CHAR;
     v = v * 85 + x;
   }
 
   x = g_ascii85_decode[(unsigned) *b];
   if (!x--)
-    return -1;
+    return B85_E_INVALID_CHAR;
 
   // Check for overflow.
   if ((0xffffffff / 85 < v) || (0xffffffff - x < (v *= 85)))
-    return -1;
+    return B85_E_OVERFLOW;
 
   v += x;
 
@@ -235,14 +261,17 @@ base85_decode_strict (struct base85_context_t *ctx)
   }
 
   ctx->pos = 0;
-  return 0;
+  return B85_E_OK;
 }
 
-int
+b85_result_t
 base85_decode (const char *b, size_t cb_b, struct base85_context_t *ctx)
 {
-  if (!b || !ctx)
-    return -1;
+  if (!ctx || (cb_b && !b))
+    return B85_E_API_MISUSE;
+
+  if (!cb_b)
+    return B85_E_OK;
 
   while (cb_b--)
   {
@@ -253,8 +282,8 @@ base85_decode (const char *b, size_t cb_b, struct base85_context_t *ctx)
     {
       if (base85_context_bytes_remaining (ctx) < 4)
       {
-        if (base85_context_grow (ctx))
-          return -1;
+        b85_result_t rv = base85_context_grow (ctx);
+        if (rv) return rv;
       }
 
       memset (ctx->out_pos, 0, 4);
@@ -268,28 +297,28 @@ base85_decode (const char *b, size_t cb_b, struct base85_context_t *ctx)
     ctx->hold[ctx->pos++] = c;
     if (5 == ctx->pos)
     {
-      if (base85_decode_strict (ctx))
-        return -1;
+      b85_result_t rv = base85_decode_strict (ctx);
+      if (rv) return rv;
     }
   }
 
-  return 0;
+  return B85_E_OK;
 }
 
-int
+b85_result_t
 base85_decode_last (struct base85_context_t *ctx)
 {
   size_t pos = ctx->pos;
 
   if (!pos)
-    return 0;
+    return B85_E_OK;
 
   for (int i = pos; i < 5; ++i)
     ctx->hold[i] = g_ascii85_encode[dimof (g_ascii85_encode) - 1];
 
-  if (base85_decode_strict (ctx))
-    return -1;
+  b85_result_t rv = base85_decode_strict (ctx);
+  if (rv) return rv;
 
   ctx->out_pos -= 5 - pos;
-  return 0;
+  return B85_E_OK;
 }

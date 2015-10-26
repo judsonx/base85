@@ -3,6 +3,22 @@
 
 #include <stddef.h>
 
+typedef enum
+{
+  B85_E_UNSPECIFIED = -1,
+  B85_E_OK = 0,
+  B85_E_OOM,
+  B85_E_OVERFLOW,
+  B85_E_INVALID_CHAR,
+  B85_E_LOGIC_ERROR,
+  B85_E_API_MISUSE,
+  B85_E_END
+} b85_result_t;
+
+/// Translates @a val to an error string.
+const char *
+base85_error_string (b85_result_t val);
+
 /// Context for the base85 decode functions.
 struct base85_context_t
 {
@@ -24,7 +40,7 @@ struct base85_context_t
 
 /// Initializes a context object.
 /// When done with the context, call base85_context_destroy().
-int
+b85_result_t
 base85_context_init (struct base85_context_t *ctx);
 
 /// Context cleanup. Frees memory associated with the context.
@@ -42,12 +58,12 @@ base85_required_buffer_size (size_t input_size);
 ///
 /// Note: base85_encode_last() must be called in order to finalize the encode
 /// operation.
-int
+b85_result_t
 base85_encode (const char *b, size_t cb_b, struct base85_context_t *ctx);
 
 /// Finalizes an encode operation that was initiated by calling base85_encode().
 /// @pre @a ctx must be valid.
-int
+b85_result_t
 base85_encode_last (struct base85_context_t *ctx);
 
 /// Decodes @a cb_b characters from @a b. The result is stored in @a ctx.
@@ -58,7 +74,7 @@ base85_encode_last (struct base85_context_t *ctx);
 /// operation.
 ///
 /// @return 0 for success.
-int
+b85_result_t
 base85_decode (
   const char *b, size_t cb_b, struct base85_context_t *ctx
 );
@@ -67,7 +83,7 @@ base85_decode (
 /// @pre @a ctx must be valid.
 ///
 /// @return 0 for success.
-int
+b85_result_t
 base85_decode_last (struct base85_context_t *ctx);
 
 #endif // !defined (BASE85_H__INCLUDED__)

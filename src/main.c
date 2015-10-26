@@ -12,6 +12,12 @@ usage (const char *name)
   return 2;
 }
 
+void
+report_error (b85_result_t val)
+{
+  fprintf (stderr, "* Error: %s.\n", base85_error_string (val));
+}
+
 int
 main (int argc, char *argv[])
 {
@@ -21,6 +27,7 @@ main (int argc, char *argv[])
   // Should be divisible by 4.
   static const size_t INPUT_BUFFER_MAX = 1024;
 
+  b85_result_t rv = B85_E_UNSPECIFIED;
   char input[INPUT_BUFFER_MAX];
 
   struct base85_context_t ctx;
@@ -32,16 +39,18 @@ main (int argc, char *argv[])
     size_t input_cb;
     while ((input_cb = read (0, input, INPUT_BUFFER_MAX)))
     {
-      if (base85_encode (input, input_cb, &ctx))
+      rv = base85_encode (input, input_cb, &ctx);
+      if (rv)
       {
-        fprintf (stderr, "Encoding error\n");
+        report_error (rv);
         base85_context_destroy (&ctx);
         return 1;
       }
     }
-    if (base85_encode_last (&ctx))
+    rv = base85_encode_last (&ctx);
+    if (rv)
     {
-      fprintf (stderr, "Encoding error (last)\n");
+      report_error (rv);
       base85_context_destroy (&ctx);
       return 1;
     }
@@ -54,16 +63,18 @@ main (int argc, char *argv[])
     size_t input_cb;
     while ((input_cb = read (0, input, INPUT_BUFFER_MAX)))
     {
-      if (base85_decode (input, input_cb, &ctx))
+      rv = base85_decode (input, input_cb, &ctx);
+      if (rv)
       {
-        fprintf (stderr, "Decoding error\n");
+        report_error (rv);
         base85_context_destroy (&ctx);
         return 1;
       }
     }
-    if (base85_decode_last (&ctx))
+    rv = base85_decode_last (&ctx);
+    if (rv)
     {
-      fprintf (stderr, "Decoding error (last)\n");
+      report_error (rv);
       base85_context_destroy (&ctx);
       return 1;
     } 
