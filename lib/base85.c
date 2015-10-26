@@ -121,10 +121,8 @@ base85_required_buffer_size (size_t input_size)
 static int
 base85_encode_strict (struct base85_context_t *ctx)
 {
-  unsigned int v = (unsigned char) ctx->hold[0] << 24
-    | (unsigned char) ctx->hold[1] << 16
-    | (unsigned char) ctx->hold[2] << 8
-    | (unsigned char) ctx->hold[3];
+  unsigned char *h = ctx->hold;
+  unsigned int v = h[0] << 24 | h[1] << 16 | h[2] << 8 | h[3];
 
   ctx->pos = 0;
 
@@ -204,7 +202,7 @@ base85_decode_strict (struct base85_context_t *ctx)
 {
   unsigned int v = 0;
   unsigned char x;
-  char *b = ctx->hold;
+  unsigned char *b = ctx->hold;
 
   if (base85_context_bytes_remaining (ctx) < 4)
   {

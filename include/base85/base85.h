@@ -6,10 +6,10 @@
 /// Context for the base85 decode functions.
 struct base85_context_t
 {
-  /// Bytes "on deck" for encoding/decoding.
-  char hold[5];
+  /// Bytes "on deck" for encoding/decoding. Unsigned is important.
+  unsigned char hold[5];
 
-  /// The current hold position (i.e. how many bytes are currently in hold.
+  /// The current hold position (i.e. how many bytes are currently in hold).
   size_t pos;
 
   /// Output buffer, memory is managed by the encode/decode functions.
