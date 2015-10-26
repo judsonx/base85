@@ -1,6 +1,8 @@
 #include "base85/base85.h"
 
 #include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define dimof(x) (sizeof(x) / sizeof(*x))
 
@@ -53,6 +55,58 @@ base85_whitespace (char c)
   return false;
 }
 
+static ptrdiff_t
+base85_decode_out_bytes_remaining (struct base85_decode_context_t *ctx)
+{
+  return (ctx->out + ctx->out_cb) - ctx->out_pos;
+}
+
+static int
+base85_decode_context_grow_out (struct base85_decode_context_t *ctx)
+{
+  // TODO: Refine size, and fallback strategy.
+  size_t size = ctx->out_cb * 2;
+  ptrdiff_t offset = ctx->out_pos - ctx->out;
+  char *buffer = realloc (ctx->out, size);
+  if (!buffer)
+    return -1;
+
+  ctx->out = buffer;
+  ctx->out_cb = size;
+  ctx->out_pos = ctx->out + offset;
+  return 0;
+}
+
+int
+base85_decode_context_init (struct base85_decode_context_t *ctx)
+{
+  static size_t INITIAL_BUFFER_SIZE = 1024;
+
+  base85_decode_init ();
+
+  if (!ctx)
+    return -1;
+
+  ctx->pos = 0;
+  ctx->out = malloc (INITIAL_BUFFER_SIZE);
+  if (!ctx->out)
+    return -1;
+
+  ctx->out_pos = ctx->out;
+  ctx->out_cb = INITIAL_BUFFER_SIZE;
+  return 0;
+}
+
+void
+base85_decode_context_destroy (struct base85_decode_context_t *ctx)
+{
+  char *out = ctx->out;
+  ctx->out = NULL;
+  ctx->out_pos = NULL;
+  ctx->out_cb = 0;
+  free (out);
+}
+
 size_t
 base85_required_buffer_size (size_t input_size)
 {
@@ -99,10 +153,18 @@ base85_encode (const char *b, size_t cb_b, char *out)
 /// Decodes exactly 5 bytes from @a b and stores 4 bytes in @a out.
 /// @return -1 on overflow.
 static int
-base85_decode_strict (const char *b, char *out)
+base85_decode_strict (struct base85_decode_context_t *ctx)
 {
   unsigned int v = 0;
   unsigned char x;
+  char *b = ctx->hold;
+
+  if (base85_decode_out_bytes_remaining (ctx) < 4)
+  {
+    if (base85_decode_context_grow_out (ctx))
+      return -1;
+  }
+
   for (int c = 0; c < 4; ++c)
   {
     x = g_ascii85_decode[(unsigned) *b++];
@@ -122,68 +184,67 @@ base85_decode_strict (const char *b, char *out)
   v += x;
 
   for (int c = 24; c >= 0; c -= 8)
-    *out++ = (v >> c) & 0xff;
+  {
+    *(ctx->out_pos) = (v >> c) & 0xff;
+    ctx->out_pos++;
+  }
 
+  ctx->pos = 0;
   return 0;
 }
 
 int
-base85_decode (const char *b, size_t cb_b, char *out, size_t *out_cb)
+base85_decode (const char *b, size_t cb_b, struct base85_decode_context_t *ctx)
 {
-  if (!b || !out_cb)
+  if (!b || !ctx)
     return -1;
 
-  base85_decode_init ();
-
-  char a[5];
-  size_t pos = 0;
-  size_t cb = 0;
   while (cb_b--)
   {
     char c = *b++;
 
     // Special case for 'z'.
-    if ('z' == c && !pos)
+    if ('z' == c && !ctx->pos)
     {
-      if (out)
+      if (base85_decode_out_bytes_remaining (ctx) < 4)
       {
-        memset (out, 0, 4);
-        out += 4;
+        if (base85_decode_context_grow_out (ctx))
+          return -1;
       }
-      cb += 4;
+
+      memset (ctx->out_pos, 0, 4);
+      ctx->out_pos += 4;
       continue;
     }
 
     if (base85_whitespace (c))
       continue;
 
-    a[pos++] = c;
-    if (5 == pos)
+    ctx->hold[ctx->pos++] = c;
+    if (5 == ctx->pos)
     {
-      if (out)
-      {
-        if (base85_decode_strict (a, out))
-          return -1;
-        out += 4;
-      }
-      cb += 4;
-      pos = 0;
+      if (base85_decode_strict (ctx))
+        return -1;
     }
   }
 
-  // pos contains the number of items in a.
-  if (pos)
-  {
-    for (int i = pos; i < 5; ++i)
-      a[i] = 'u';
+  return 0;
+}
 
-    if (out && base85_decode_strict (a, out))
-      return -1;
+int
+base85_decode_last (struct base85_decode_context_t *ctx)
+{
+  size_t pos = ctx->pos;
 
-    cb = cb + 4 - (5 - pos);
-  }
+  if (!pos)
+    return 0;
 
+  for (int i = pos; i < 5; ++i)
+    ctx->hold[i] = 'u';
 
-  *out_cb = cb;
+  if (base85_decode_strict (ctx))
+    return -1;
+
+  ctx->out_pos -= 5 - pos;
   return 0;
 }

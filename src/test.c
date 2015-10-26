@@ -55,36 +55,43 @@ static const struct b85_test_t g_whitespace_tests[] = {
 int
 run_ws_test (const struct b85_test_t *entry)
 {
-  size_t cb;
-  if (base85_decode (entry->expected_.b_, entry->expected_.cb_b_, NULL, &cb))
+  struct base85_decode_context_t ctx;
+  if (base85_decode_context_init (&ctx))
     return -1;
 
+  if (base85_decode (entry->expected_.b_, entry->expected_.cb_b_, &ctx))
+    goto error_exit;
+  
+  if (base85_decode_last (&ctx))
+    goto error_exit;
+
+  size_t cb = ctx.out_pos - ctx.out;
   if (cb != entry->input_.cb_b_)
-    return -1;
+    goto error_exit;
 
-  char *buffer = malloc (cb + 4);
+  if (memcmp (ctx.out, entry->input_.b_, cb))
+    goto error_exit;
 
-  size_t cb2;
-  if (base85_decode (entry->expected_.b_, entry->expected_.cb_b_, buffer, &cb2))
-    return -1;
-
-  if (cb != cb2)
-    return -1;
-
-  if (memcmp (buffer, entry->input_.b_, cb2))
-    return -1;
-
+  base85_decode_context_destroy (&ctx);
   return 0;
+
+  error_exit:
+
+  base85_decode_context_destroy (&ctx);
+  return -1;
 }
 
 int
 run_small_test (const struct b85_test_t *entry)
 {
   size_t required_bytes = base85_required_buffer_size (entry->input_.cb_b_);
-  char *buffer2 = NULL;
+  struct base85_decode_context_t ctx;
+  if (base85_decode_context_init (&ctx))
+    return -1;
+
   char *buffer = malloc (required_bytes);
   if (!buffer)
-    return -1;
+    goto error_exit;
 
   base85_encode (entry->input_.b_, entry->input_.cb_b_, buffer);
   size_t result_len = strlen (buffer);
@@ -97,33 +104,28 @@ run_small_test (const struct b85_test_t *entry)
   if (memcmp (buffer, entry->expected_.b_, result_len))
     goto error_exit;
 
-  size_t cb;
-  if (base85_decode (buffer, result_len, NULL, &cb))
+  if (base85_decode (buffer, result_len, &ctx))
     goto error_exit;
 
-  buffer2 = malloc (cb + 4);
-  if (!buffer2)
+  if (base85_decode_last (&ctx))
     goto error_exit;
 
-  size_t cb2;
-  if (base85_decode (buffer, result_len, buffer2, &cb2))
-    goto error_exit;
-
-  if (cb2 != cb)
-    goto error_exit;
-
+  size_t cb = ctx.out_pos - ctx.out;
   if (cb != entry->input_.cb_b_)
     goto error_exit;
 
-  if (memcmp (entry->input_.b_, buffer2, cb))
+  if (memcmp (entry->input_.b_, ctx.out, cb))
     goto error_exit;
 
+  free (buffer);
+  base85_decode_context_destroy (&ctx);
   return 0;
 
   error_exit:
-    free (buffer);
-    free (buffer2);
-    return -1;
+
+  free (buffer);
+  base85_decode_context_destroy (&ctx);
+  return -1;
 }
 
 int

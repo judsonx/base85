@@ -21,14 +21,11 @@ main (int argc, char *argv[])
   // Should be divisible by 4.
   static const size_t INPUT_BUFFER_MAX = 1024;
 
-  // Should be divisible by 5.
-  static const size_t INPUT_BUFFER_DECODE_MAX = 1000;
-
-  char *buffer = NULL;
   char input[INPUT_BUFFER_MAX];
 
   if (!strcmp (argv[1], "-e"))
   {
+    char *buffer = NULL;
     size_t input_cb;
     while ((input_cb = read (0, input, INPUT_BUFFER_MAX)))
     {
@@ -38,35 +35,36 @@ main (int argc, char *argv[])
         return 1;
 
       base85_encode (input, input_cb, buffer);
-      printf ("%s", buffer);
+      printf ("%s\n", buffer);
     }
+    free (buffer);
   }
   else if (!strcmp (argv[1], "-d"))
   {
+    struct base85_decode_context_t ctx;
+    if (base85_decode_context_init (&ctx))
+      return 1;
+
     size_t input_cb;
-    while ((input_cb = read (0, input, INPUT_BUFFER_DECODE_MAX)))
+    while ((input_cb = read (0, input, INPUT_BUFFER_MAX)))
     {
-      size_t cb = 0;
-      if (base85_decode (input, input_cb, NULL, &cb))
+      if (base85_decode (input, input_cb, &ctx))
       {
         fprintf (stderr, "Decoding error\n");
-        return 0;
-      }
-      buffer = realloc (buffer, cb + 4);
-      if (!buffer)
-        return 1;
-
-      if (base85_decode (input, input_cb, buffer, &cb))
-      {
-        fprintf (stderr, "Decoding error\n");
-        free (buffer);
+        base85_decode_context_destroy (&ctx);
         return 1;
       }
-
-      (void) write (1, buffer, cb);
     }
+    if (base85_decode_last (&ctx))
+    {
+      fprintf (stderr, "Decoding error (last)\n");
+      base85_decode_context_destroy (&ctx);
+      return 1;
+    } 
+    size_t out_cb = ctx.out_pos - ctx.out;
+    (void) write (1, ctx.out, out_cb);
+    base85_decode_context_destroy (&ctx);
   }
 
-  free (buffer);
   return 0;
 }
