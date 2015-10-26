@@ -19,6 +19,7 @@ struct b85_test_t
 };
 
 static const char zeros[32];
+static const char binary1[] = { 0xff, 0xd8, 0xff, 0xe0 };
 
 static const struct b85_test_t g_small_tests[] = {
   { { "h", 1 }, { "BE", 2 } },
@@ -42,6 +43,8 @@ static const struct b85_test_t g_small_tests[] = {
   { { zeros, 24 }, { "zzzzzz", 6 } },
   { { zeros, 28 }, { "zzzzzzz", 7 } },
   { { zeros, 32 }, { "zzzzzzzz", 8 } },
+
+  { { binary1, 4 }, { "s4IA0", 5 }}
 };
 
 static const struct b85_test_t g_whitespace_tests[] = {
