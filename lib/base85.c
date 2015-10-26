@@ -29,7 +29,7 @@ static unsigned char g_ascii85_decode[256];
 static void
 base85_decode_init ()
 {
-  if (g_ascii85_decode['u'])
+  if (g_ascii85_decode[g_ascii85_encode[0]])
     return;
 
   // NOTE: Assumes g_ascii85_decode[] was implicitly initialized with zeros.
@@ -286,7 +286,7 @@ base85_decode_last (struct base85_context_t *ctx)
     return 0;
 
   for (int i = pos; i < 5; ++i)
-    ctx->hold[i] = 'u';
+    ctx->hold[i] = g_ascii85_encode[dimof (g_ascii85_encode) - 1];
 
   if (base85_decode_strict (ctx))
     return -1;
