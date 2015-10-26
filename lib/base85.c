@@ -121,11 +121,10 @@ base85_required_buffer_size (size_t input_size)
 static int
 base85_encode_strict (struct base85_context_t *ctx)
 {
-  unsigned int v = 0;
-  v |= (unsigned char) ctx->hold[0] << 24;
-  v |= (unsigned char) ctx->hold[1] << 16;
-  v |= (unsigned char) ctx->hold[2] << 8;
-  v |= (unsigned char) ctx->hold[3];
+  unsigned int v = (unsigned char) ctx->hold[0] << 24
+    | (unsigned char) ctx->hold[1] << 16
+    | (unsigned char) ctx->hold[2] << 8
+    | (unsigned char) ctx->hold[3];
 
   ctx->pos = 0;
 
