@@ -56,8 +56,9 @@ main (int argc, char *argv[])
   char input[INPUT_BUFFER_MAX];
 
   struct base85_context_t ctx;
-  if (base85_context_init (&ctx))
-    return 1;
+  rv = base85_context_init (&ctx);
+  if (rv)
+    goto error_exit;
 
   if (!strcmp (argv[1], "-e"))
   {
@@ -67,11 +68,8 @@ main (int argc, char *argv[])
     {
       rv = base85_encode (input, input_cb, &ctx);
       if (rv)
-      {
-        report_error (rv);
-        base85_context_destroy (&ctx);
-        return 1;
-      }
+        goto error_exit;
+
       size_t cb = ctx.out_pos - ctx.out;
       print_offset = print_max_width (
         ctx.out, cb, ENCODED_LINE_LENGTH, print_offset
@@ -80,11 +78,7 @@ main (int argc, char *argv[])
     }
     rv = base85_encode_last (&ctx);
     if (rv)
-    {
-      report_error (rv);
-      base85_context_destroy (&ctx);
-      return 1;
-    }
+      goto error_exit;
 
     size_t cb = ctx.out_pos - ctx.out;
     (void) print_max_width (ctx.out, cb, ENCODED_LINE_LENGTH, print_offset);
@@ -92,32 +86,30 @@ main (int argc, char *argv[])
   }
   else if (!strcmp (argv[1], "-d"))
   {
-
     size_t input_cb;
     while ((input_cb = read (0, input, INPUT_BUFFER_MAX)))
     {
       rv = base85_decode (input, input_cb, &ctx);
       if (rv)
-      {
-        report_error (rv);
-        base85_context_destroy (&ctx);
-        return 1;
-      }
+        goto error_exit;
+
       size_t out_cb = ctx.out_pos - ctx.out;
       (void) write (1, ctx.out, out_cb);
       ctx.out_pos = ctx.out;
     }
     rv = base85_decode_last (&ctx);
     if (rv)
-    {
-      report_error (rv);
-      base85_context_destroy (&ctx);
-      return 1;
-    } 
+      goto error_exit;
+
     size_t out_cb = ctx.out_pos - ctx.out;
     (void) write (1, ctx.out, out_cb);
   }
 
   base85_context_destroy (&ctx);
   return 0;
+
+error_exit:
+  report_error (rv);
+  base85_context_destroy (&ctx);
+  return 1;
 }
