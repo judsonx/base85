@@ -116,7 +116,11 @@ base85_context_init (struct base85_context_t *ctx)
   if (!ctx)
     return B85_E_API_MISUSE;
 
+  ctx->out_cb = 0;
+  ctx->out_pos = NULL;
+  ctx->processed = 0;
   ctx->pos = 0;
+
   ctx->out = malloc (INITIAL_BUFFER_SIZE);
   if (!ctx->out)
     return B85_E_OOM;
@@ -190,6 +194,7 @@ base85_encode (const char *b, size_t cb_b, struct base85_context_t *ctx)
   while (cb_b--)
   {
     ctx->hold[ctx->pos++] = *b++;
+    ctx->processed++;
     if (4 == ctx->pos)
     {
       b85_result_t rv = base85_encode_strict (ctx);
@@ -284,6 +289,7 @@ base85_decode (const char *b, size_t cb_b, struct base85_context_t *ctx)
   while (cb_b--)
   {
     char c = *b++;
+    ctx->processed++;
 
     // Special case for 'z'.
     if (BASE85_ZERO_CHAR == c && !ctx->pos)

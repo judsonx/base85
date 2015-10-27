@@ -36,6 +36,9 @@ struct base85_context_t
 
   /// Number of bytes allocated for the out buffer.
   size_t out_cb;
+
+  /// The total number of bytes processed as input.
+  size_t processed;
 };
 
 /// Initializes a context object.

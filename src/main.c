@@ -15,15 +15,6 @@ usage (const char *name)
   return 2;
 }
 
-static void
-report_error (b85_result_t val)
-{
-  if (B85_E_OK == val)
-    return;
-
-  fprintf (stderr, "* Error: %s.\n", base85_error_string (val));
-}
-
 static size_t
 print_max_width (const char *buf, size_t buf_cb, size_t width, size_t offset)
 {
@@ -115,8 +106,15 @@ b85_wrapper (handler_t handler)
   b85_result_t rv = base85_context_init (&ctx);
   if (B85_E_OK == rv)
     rv = handler (&ctx);
+  if (rv)
+  {
+    fprintf (
+      stderr, "* Error[%d]: %s. [offset: %zu]\n", rv, base85_error_string (rv),
+      ctx.processed
+    );
+  }
   base85_context_destroy (&ctx);
-  return rv;
+  return (B85_E_OK == rv) ? 0 : 1;
 }
 
 int
@@ -125,21 +123,10 @@ main (int argc, char *argv[])
   if (2 != argc)
     return usage (argv[0]);
 
-  b85_result_t rv = B85_E_UNSPECIFIED;
   if (!strcmp (argv[1], "-e"))
-  {
-    rv = b85_wrapper (b85_encode);
-    report_error (rv);
-  }
+    return b85_wrapper (b85_encode);
   else if (!strcmp (argv[1], "-d"))
-  {
-    rv = b85_wrapper (b85_decode);
-    report_error (rv);
-  }
-  else
-  {
-    return usage (argv[0]);
-  }
+    return b85_wrapper (b85_decode);
 
-  return (B85_E_OK == rv) ? 0 : 1;
+  return usage (argv[0]);
 }
