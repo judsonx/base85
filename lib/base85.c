@@ -10,7 +10,7 @@ const char *
 base85_error_string (b85_result_t val)
 {
   static const char *m[] = {
-    "Sucess", // B85_E_OK
+    "Success", // B85_E_OK
     "Out of memory", //B85_E_OOM
     "Byte sequence resulted in an overflow", //B85_E_OVERFLOW
     "Invalid character", // B85_E_INVALID_CHAR
