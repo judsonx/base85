@@ -5,8 +5,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define dimof(x) (sizeof(x) / sizeof (*x))
-
 struct bytes_t
 {
   const char *b_;
