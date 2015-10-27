@@ -227,39 +227,39 @@ run_tests (int argc, char *argv[])
   start = clock ();
 
   printf ("small tests:\n");
-  B85_RUN_TEST (s0);
-  B85_RUN_TEST (s1);
-  B85_RUN_TEST (s2);
-  B85_RUN_TEST (s3);
-  B85_RUN_TEST (s4);
-  B85_RUN_TEST (s5);
-  B85_RUN_TEST (s6);
-  B85_RUN_TEST (s7);
-  B85_RUN_TEST (s8);
-  B85_RUN_TEST (s9);
-  B85_RUN_TEST (s10);
-  B85_RUN_TEST (s11);
-  B85_RUN_TEST (s12);
-  B85_RUN_TEST (z1);
-  B85_RUN_TEST (z2);
-  B85_RUN_TEST (z3);
-  B85_RUN_TEST (z4);
-  B85_RUN_TEST (z5);
-  B85_RUN_TEST (z6);
-  B85_RUN_TEST (z7);
-  B85_RUN_TEST (z8);
-  B85_RUN_TEST (bin1);
-  B85_RUN_TEST (bin2);
+  B85_RUN_TEST (s0)
+  B85_RUN_TEST (s1)
+  B85_RUN_TEST (s2)
+  B85_RUN_TEST (s3)
+  B85_RUN_TEST (s4)
+  B85_RUN_TEST (s5)
+  B85_RUN_TEST (s6)
+  B85_RUN_TEST (s7)
+  B85_RUN_TEST (s8)
+  B85_RUN_TEST (s9)
+  B85_RUN_TEST (s10)
+  B85_RUN_TEST (s11)
+  B85_RUN_TEST (s12)
+  B85_RUN_TEST (z1)
+  B85_RUN_TEST (z2)
+  B85_RUN_TEST (z3)
+  B85_RUN_TEST (z4)
+  B85_RUN_TEST (z5)
+  B85_RUN_TEST (z6)
+  B85_RUN_TEST (z7)
+  B85_RUN_TEST (z8)
+  B85_RUN_TEST (bin1)
+  B85_RUN_TEST (bin2)
 
   printf ("decode whitespace:\n");
-  B85_RUN_TEST (ws1);
-  B85_RUN_TEST (ws2);
+  B85_RUN_TEST (ws1)
+  B85_RUN_TEST (ws2)
 
   printf ("all bytes:\n");
-  B85_RUN_TEST (allbytes);
+  B85_RUN_TEST (allbytes)
 
   printf ("larger\n");
-  B85_RUN_TEST (more_data);
+  B85_RUN_TEST (more_data)
 
   end = clock ();
   double elapsed = (double) (end - start) / CLOCKS_PER_SEC; 
