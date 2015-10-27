@@ -173,7 +173,7 @@ static b85_result_t
 base85_encode_strict (struct base85_context_t *ctx)
 {
   unsigned char *h = ctx->hold;
-  unsigned int v = h[0] << 24 | h[1] << 16 | h[2] << 8 | h[3];
+  uint32_t v = h[0] << 24 | h[1] << 16 | h[2] << 8 | h[3];
 
   ctx->pos = 0;
 
@@ -261,7 +261,7 @@ base85_encode_last (struct base85_context_t *ctx)
 static b85_result_t
 base85_decode_strict (struct base85_context_t *ctx)
 {
-  unsigned int v = 0;
+  uint32_t v = 0;
   unsigned char x;
   unsigned char *b = ctx->hold;
 
