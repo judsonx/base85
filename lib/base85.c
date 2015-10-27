@@ -85,12 +85,20 @@ base85_context_bytes_remaining (struct base85_context_t *ctx)
 static b85_result_t
 base85_context_grow (struct base85_context_t *ctx)
 {
+  // How much additional memory to request if an allocation fails.
+  static const size_t SMALL_DELTA = 256;
+
   // TODO: Refine size, and fallback strategy.
   size_t size = ctx->out_cb * 2;
   ptrdiff_t offset = ctx->out_pos - ctx->out;
   char *buffer = realloc (ctx->out, size);
   if (!buffer)
-    return B85_E_OOM;
+  {
+    // Try a smaller allocation.
+    buffer = realloc (ctx->out, ctx->out_cb + SMALL_DELTA);
+    if (!buffer)
+      return B85_E_OOM;
+  }
 
   ctx->out = buffer;
   ctx->out_cb = size;
