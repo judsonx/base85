@@ -19,6 +19,7 @@ struct b85_test_t
 
 static const char zeros[32];
 static const char binary1[] = { 0xff, 0xd8, 0xff, 0xe0 };
+static const char binary2[] = { 0xff, 0xff, 0xff, 0xff };
 
 bool
 run_ws_test (const struct b85_test_t *entry)
@@ -144,6 +145,7 @@ B85_CREATE_TEST (z7, run_small_test, zeros, 28, "zzzzzzz", 7)
 B85_CREATE_TEST (z8, run_small_test, zeros, 32, "zzzzzzzz", 8)
 
 B85_CREATE_TEST (bin1, run_small_test, binary1, 4,"s4IA0", 5)
+B85_CREATE_TEST (bin2, run_small_test, binary2, 4,"s8W-!", 5)
 
 B85_CREATE_TEST (ws1, run_ws_test, "hello world", 11, " B\tOu  !rD]\nj7B\rEb o7  ", 23)
 B85_CREATE_TEST (ws2, run_ws_test, "hello world", 11, "B\t\n\nOu!  rD]j7BEbo7\r\n", 21)
@@ -176,6 +178,7 @@ run_tests (int argc, char *argv[])
   B85_RUN_TEST (z7);
   B85_RUN_TEST (z8);
   B85_RUN_TEST (bin1);
+  B85_RUN_TEST (bin2);
 
   printf ("decode whitespace:\n");
   B85_RUN_TEST (ws1);
