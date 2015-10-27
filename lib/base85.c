@@ -109,6 +109,9 @@ base85_context_grow (struct base85_context_t *ctx)
 char *
 base85_get_output (struct base85_context_t *ctx, size_t *cb)
 {
+  if (!ctx || !cb)
+    return NULL;
+
   *cb = ctx->out_pos - ctx->out;
   return ctx->out;
 }
@@ -116,6 +119,9 @@ base85_get_output (struct base85_context_t *ctx, size_t *cb)
 void
 base85_clear_output (struct base85_context_t *ctx)
 {
+  if (!ctx)
+    return;
+
   ctx->out_pos = ctx->out;
 }
 
@@ -146,6 +152,9 @@ base85_context_init (struct base85_context_t *ctx)
 void
 base85_context_destroy (struct base85_context_t *ctx)
 {
+  if (!ctx)
+    return;
+
   char *out = ctx->out;
   ctx->out = NULL;
   ctx->out_pos = NULL;
@@ -335,6 +344,9 @@ base85_decode (const char *b, size_t cb_b, struct base85_context_t *ctx)
 b85_result_t
 base85_decode_last (struct base85_context_t *ctx)
 {
+  if (!ctx)
+    return B85_E_API_MISUSE;
+
   size_t pos = ctx->pos;
 
   if (!pos)
