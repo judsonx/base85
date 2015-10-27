@@ -7,20 +7,20 @@
 
 static const size_t ENCODED_LINE_LENGTH = 80;
 
-int
+static int
 usage (const char *name)
 {
   fprintf (stderr, "Usage: %s -e | -d\n", name);
   return 2;
 }
 
-void
+static void
 report_error (b85_result_t val)
 {
   fprintf (stderr, "* Error: %s.\n", base85_error_string (val));
 }
 
-size_t
+static size_t
 print_max_width (const char *buf, size_t buf_cb, size_t width, size_t offset)
 {
   // How many bytes were written to the last row.
