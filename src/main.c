@@ -5,6 +5,8 @@
 #include <string.h>
 #include <unistd.h>
 
+static const size_t ENCODED_LINE_LENGTH = 80;
+
 int
 usage (const char *name)
 {
@@ -16,6 +18,29 @@ void
 report_error (b85_result_t val)
 {
   fprintf (stderr, "* Error: %s.\n", base85_error_string (val));
+}
+
+size_t
+print_max_width (const char *buf, size_t buf_cb, size_t width, size_t offset)
+{
+  // How many bytes were written to the last row.
+  size_t rv = (buf_cb + offset) % width;
+
+  while (buf_cb)
+  {
+    size_t cb = width - offset;
+    if (buf_cb < cb)
+      cb = buf_cb;
+
+    (void) write (1, buf, cb);
+    if (cb == width - offset)
+      (void) putchar ('\n');
+
+    buf_cb -= cb;
+    buf += cb;
+    offset = 0;
+  }
+  return rv;
 }
 
 int
@@ -36,6 +61,7 @@ main (int argc, char *argv[])
 
   if (!strcmp (argv[1], "-e"))
   {
+    size_t print_offset = 0;
     size_t input_cb;
     while ((input_cb = read (0, input, INPUT_BUFFER_MAX)))
     {
@@ -46,6 +72,11 @@ main (int argc, char *argv[])
         base85_context_destroy (&ctx);
         return 1;
       }
+      size_t cb = ctx.out_pos - ctx.out;
+      print_offset = print_max_width (
+        ctx.out, cb, ENCODED_LINE_LENGTH, print_offset
+      );
+      ctx.out_pos = ctx.out;
     }
     rv = base85_encode_last (&ctx);
     if (rv)
@@ -55,7 +86,9 @@ main (int argc, char *argv[])
       return 1;
     }
 
-    printf ("%s\n", ctx.out);
+    size_t cb = ctx.out_pos - ctx.out;
+    (void) print_max_width (ctx.out, cb, ENCODED_LINE_LENGTH, print_offset);
+    (void) putchar ('\n');
   }
   else if (!strcmp (argv[1], "-d"))
   {
@@ -70,6 +103,9 @@ main (int argc, char *argv[])
         base85_context_destroy (&ctx);
         return 1;
       }
+      size_t out_cb = ctx.out_pos - ctx.out;
+      (void) write (1, ctx.out, out_cb);
+      ctx.out_pos = ctx.out;
     }
     rv = base85_decode_last (&ctx);
     if (rv)
