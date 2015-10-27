@@ -20,12 +20,12 @@ struct b85_test_t
 static const char zeros[32];
 static const char binary1[] = { 0xff, 0xd8, 0xff, 0xe0 };
 
-int
+bool
 run_ws_test (const struct b85_test_t *entry)
 {
   struct base85_context_t ctx;
   if (base85_context_init (&ctx))
-    return -1;
+    return false;
 
   if (base85_decode (entry->expected_.b_, entry->expected_.cb_b_, &ctx))
     goto error_exit;
@@ -41,20 +41,20 @@ run_ws_test (const struct b85_test_t *entry)
     goto error_exit;
 
   base85_context_destroy (&ctx);
-  return 0;
+  return true;
 
   error_exit:
 
   base85_context_destroy (&ctx);
-  return -1;
+  return false;
 }
 
-int
+bool
 run_small_test (const struct b85_test_t *entry)
 {
   struct base85_context_t ctx;
   if (base85_context_init (&ctx))
-    return -1;
+    return false;
 
   struct base85_context_t ctx2;
   if (base85_context_init (&ctx2))
@@ -92,19 +92,19 @@ run_small_test (const struct b85_test_t *entry)
 
   base85_context_destroy (&ctx);
   base85_context_destroy (&ctx2);
-  return 0;
+  return true;
 
   error_exit:
 
   base85_context_destroy (&ctx);
   base85_context_destroy (&ctx2);
-  return -1;
+  return false;
 }
 
 #define B85_CREATE_TEST(name, test, input, input_cb, encoded, encoded_cb) \
 bool b85_test_##name () { \
   struct b85_test_t data = { { input, input_cb }, { encoded, encoded_cb } }; \
-  return !test (&data); \
+  return test (&data); \
 }
 
 #define B85_RUN_TEST(name) do { \
