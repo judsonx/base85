@@ -188,6 +188,7 @@ static bool b85_test_##name () { \
 } while (0);
 
 
+B85_CREATE_TEST (s0, run_small_test, "", 0, "", 0)
 B85_CREATE_TEST (s1, run_small_test, "h", 1, "BE", 2)
 B85_CREATE_TEST (s2, run_small_test, "he", 2, "BOq", 3)
 B85_CREATE_TEST (s3, run_small_test, "hel", 3, "BOtu", 4)
@@ -226,6 +227,7 @@ run_tests (int argc, char *argv[])
   start = clock ();
 
   printf ("small tests:\n");
+  B85_RUN_TEST (s0);
   B85_RUN_TEST (s1);
   B85_RUN_TEST (s2);
   B85_RUN_TEST (s3);
