@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 struct bytes_t
 {
@@ -124,6 +125,49 @@ error_exit:
   return B85_E_OK == rv;
 }
 
+static bool
+b85_test_more_data ()
+{
+  static const size_t INPUT_CHUNK_SIZE = 2048;
+  static const size_t N_ITERATIONS = 2000;
+
+  char input[INPUT_CHUNK_SIZE];
+  for (size_t i = 0; i < INPUT_CHUNK_SIZE; ++i)
+    input[i] = (unsigned char) i;
+
+  struct base85_context_t ctx;
+  struct base85_context_t ctx2 = { .out = NULL };
+  b85_result_t rv = B85_E_UNSPECIFIED;
+  char *out = NULL;
+  B85_TRY (base85_context_init (&ctx))
+  B85_TRY (base85_context_init (&ctx2))
+
+  size_t cb;
+  for (size_t i = 0; i < N_ITERATIONS; ++i)
+  {
+    B85_TRY (base85_encode (input, INPUT_CHUNK_SIZE, &ctx))
+    out = base85_get_output (&ctx, &cb);
+
+    B85_TRY (base85_decode (out, cb, &ctx2))
+    out = base85_get_output (&ctx2, &cb);
+    B85_TRY (check_cb (cb, INPUT_CHUNK_SIZE))
+    B85_TRY (check_bytes (out, input, cb))
+    base85_clear_output (&ctx);
+    base85_clear_output (&ctx2);
+  }
+  B85_TRY (base85_encode_last (&ctx))
+  B85_TRY (base85_decode_last (&ctx2))
+
+  // Sanity check on buffer size.
+  if (ctx.out_cb > INPUT_CHUNK_SIZE * 2 || ctx2.out_cb > INPUT_CHUNK_SIZE * 2)
+    rv = B85_E_UNSPECIFIED;
+
+error_exit:
+  base85_context_destroy (&ctx);
+  base85_context_destroy (&ctx2);
+  return B85_E_OK == rv;
+}
+
 #define B85_CREATE_TEST(name, test, input, input_cb, encoded, encoded_cb) \
 static bool b85_test_##name () { \
   struct b85_test_t data = { { input, input_cb }, { encoded, encoded_cb } }; \
@@ -175,8 +219,11 @@ B85_CREATE_TEST (ws2, run_ws_test, "hello world", 11, "B\t\n\nOu!  rD]j7BEbo7\r\
 int
 run_tests (int argc, char *argv[])
 {
+  clock_t start, end;
   size_t count = 0;
   size_t total = 0;
+
+  start = clock ();
 
   printf ("small tests:\n");
   B85_RUN_TEST (s1);
@@ -209,7 +256,13 @@ run_tests (int argc, char *argv[])
   printf ("all bytes:\n");
   B85_RUN_TEST (allbytes);
 
-  printf ("\nTOTAL: %zu FAILED: %zu\n", total, total - count);
+  printf ("larger\n");
+  B85_RUN_TEST (more_data);
+
+  end = clock ();
+  double elapsed = (double) (end - start) / CLOCKS_PER_SEC; 
+
+  printf ("\nTOTAL: %zu FAILED: %zu in %.4fs \n", total, total - count, elapsed);
 
   if (total != count)
     return 1;
