@@ -106,6 +106,19 @@ base85_context_grow (struct base85_context_t *ctx)
   return B85_E_OK;
 }
 
+char *
+base85_get_output (struct base85_context_t *ctx, size_t *cb)
+{
+  *cb = ctx->out_pos - ctx->out;
+  return ctx->out;
+}
+
+void
+base85_clear_output (struct base85_context_t *ctx)
+{
+  ctx->out_pos = ctx->out;
+}
+
 b85_result_t
 base85_context_init (struct base85_context_t *ctx)
 {

@@ -47,9 +47,10 @@ run_ws_test (const struct b85_test_t *entry)
   B85_TRY (base85_decode (entry->expected_.b_, entry->expected_.cb_b_, &ctx))
   B85_TRY (base85_decode_last (&ctx))
 
-  size_t cb = ctx.out_pos - ctx.out;
+  size_t cb;
+  char *out = base85_get_output (&ctx, &cb);
   B85_TRY (check_cb (cb, entry->input_.cb_b_))
-  B85_TRY (check_bytes (ctx.out, entry->input_.b_, cb))
+  B85_TRY (check_bytes (out, entry->input_.b_, cb))
 
   error_exit:
 
@@ -64,22 +65,25 @@ run_small_test (const struct b85_test_t *entry)
   struct base85_context_t ctx2 = { .out = NULL };
 
   b85_result_t rv = B85_E_UNSPECIFIED;
+  char *out = NULL;
   B85_TRY (base85_context_init (&ctx))
   B85_TRY (base85_context_init (&ctx2))
   B85_TRY (base85_encode (entry->input_.b_, entry->input_.cb_b_, &ctx))
   B85_TRY (base85_encode_last (&ctx))
 
-  size_t cb = ctx.out_pos - ctx.out;
+  size_t cb;
+  out = base85_get_output (&ctx, &cb);
   B85_TRY (check_cb (cb, entry->expected_.cb_b_))
-  size_t result_len = strlen (ctx.out);
+  size_t result_len = strlen (out);
   B85_TRY (check_cb (result_len, entry->expected_.cb_b_))
-  B85_TRY (check_bytes (ctx.out, entry->expected_.b_, result_len))
-  B85_TRY (base85_decode (ctx.out, result_len, &ctx2))
+  B85_TRY (check_bytes (out, entry->expected_.b_, result_len))
+  B85_TRY (base85_decode (out, result_len, &ctx2))
   B85_TRY (base85_decode_last (&ctx2))
 
-  cb = ctx2.out_pos - ctx2.out;
-  B85_TRY (check_cb (cb, entry->input_.cb_b_))
-  B85_TRY (check_bytes (entry->input_.b_, ctx2.out, cb))
+  size_t cb2;
+  out = base85_get_output (&ctx2, &cb2);
+  B85_TRY (check_cb (cb2, entry->input_.cb_b_))
+  B85_TRY (check_bytes (entry->input_.b_, out, cb2))
 
   error_exit:
 
@@ -98,17 +102,21 @@ b85_test_allbytes ()
   struct base85_context_t ctx;
   struct base85_context_t ctx2 = { .out = NULL };
   b85_result_t rv = B85_E_UNSPECIFIED;
+  char *out = NULL;
   B85_TRY (base85_context_init (&ctx))
   B85_TRY (base85_context_init (&ctx2))
   B85_TRY (base85_encode (input, 256, &ctx))
   B85_TRY (base85_encode_last (&ctx))
-  size_t cb = ctx.out_pos - ctx.out;
-  B85_TRY (base85_decode (ctx.out, cb, &ctx2))
+  size_t cb;
+  out = base85_get_output (&ctx, &cb);
+  B85_TRY (base85_decode (out, cb, &ctx2))
   B85_TRY (base85_decode_last (&ctx2))
-  size_t cb2 = ctx2.out_pos - ctx2.out;
+
+  size_t cb2;
+  out = base85_get_output (&ctx2, &cb2);
 
   B85_TRY (check_cb (256, cb2))
-  B85_TRY (check_bytes (input, ctx2.out, cb2))
+  B85_TRY (check_bytes (input, out, cb2))
 
 error_exit:
   base85_context_destroy (&ctx);

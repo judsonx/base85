@@ -47,24 +47,25 @@ b85_encode (struct base85_context_t *ctx)
   size_t print_offset = 0;
   size_t cb = 0;
   size_t input_cb;
+  char *out = NULL;
   while ((input_cb = read (0, input, INPUT_BUFFER_MAX)))
   {
     rv = base85_encode (input, input_cb, ctx);
     if (rv)
       return rv;
 
-    cb = ctx->out_pos - ctx->out;
+    out = base85_get_output (ctx, &cb);
     print_offset = print_max_width (
-      ctx->out, cb, ENCODED_LINE_LENGTH, print_offset
+      out, cb, ENCODED_LINE_LENGTH, print_offset
     );
-    ctx->out_pos = ctx->out;
+    base85_clear_output (ctx);
   }
   rv = base85_encode_last (ctx);
   if (rv)
     return rv;
 
-  cb = ctx->out_pos - ctx->out;
-  (void) print_max_width (ctx->out, cb, ENCODED_LINE_LENGTH, print_offset);
+  out = base85_get_output (ctx, &cb);
+  (void) print_max_width (out, cb, ENCODED_LINE_LENGTH, print_offset);
   (void) putchar ('\n');
 
   return B85_E_OK;
@@ -77,22 +78,25 @@ b85_decode (struct base85_context_t *ctx)
   b85_result_t rv = B85_E_UNSPECIFIED;
 
   size_t input_cb;
+  char *out = NULL;
   while ((input_cb = read (0, input, INPUT_BUFFER_MAX)))
   {
     rv = base85_decode (input, input_cb, ctx);
     if (rv)
       return rv;
 
-    size_t out_cb = ctx->out_pos - ctx->out;
-    (void) write (1, ctx->out, out_cb);
-    ctx->out_pos = ctx->out;
+    size_t out_cb;
+    out = base85_get_output (ctx, &out_cb);
+    (void) write (1, out, out_cb);
+    base85_clear_output (ctx);
   }
   rv = base85_decode_last (ctx);
   if (rv)
     return rv;
 
-  size_t out_cb = ctx->out_pos - ctx->out;
-  (void) write (1, ctx->out, out_cb);
+  size_t out_cb;
+  out = base85_get_output (ctx, &out_cb);
+  (void) write (1, out, out_cb);
 
   return B85_E_OK;
 }

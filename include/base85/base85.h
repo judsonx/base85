@@ -41,6 +41,18 @@ struct base85_context_t
   size_t processed;
 };
 
+/// Gets the output from @a ctx.
+/// Returns the number of available bytes in @a cb.
+/// @pre @a ctx is valid.
+char *
+base85_get_output (struct base85_context_t *ctx, size_t *cb);
+
+/// Clears the output buffer in @a ctx. i.e. the next call to
+/// base85_get_output() will return a byte count of zero.
+/// @pre @a ctx is valid.
+void
+base85_clear_output (struct base85_context_t *ctx);
+
 /// Initializes a context object.
 /// When done with the context, call base85_context_destroy().
 b85_result_t
