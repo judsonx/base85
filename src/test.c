@@ -21,89 +21,103 @@ static const char zeros[32];
 static const char binary1[] = { 0xff, 0xd8, 0xff, 0xe0 };
 static const char binary2[] = { 0xff, 0xff, 0xff, 0xff };
 
-bool
+#define B85_TRY(func) do { rv = func; if (rv) goto error_exit; } while (0);
+
+static b85_result_t
+check_cb (size_t cb0, size_t cb1)
+{
+  return cb0 == cb1 ? B85_E_OK : B85_E_UNSPECIFIED;
+}
+
+static b85_result_t
+check_bytes (const void *b0, const void *b1, size_t cb)
+{
+  if (memcmp (b0, b1, cb))
+    return B85_E_UNSPECIFIED;
+  return B85_E_OK;
+}
+
+static bool
 run_ws_test (const struct b85_test_t *entry)
 {
   struct base85_context_t ctx;
-  if (base85_context_init (&ctx))
-    return false;
+  b85_result_t rv = B85_E_UNSPECIFIED;
 
-  if (base85_decode (entry->expected_.b_, entry->expected_.cb_b_, &ctx))
-    goto error_exit;
-
-  if (base85_decode_last (&ctx))
-    goto error_exit;
+  B85_TRY (base85_context_init (&ctx))
+  B85_TRY (base85_decode (entry->expected_.b_, entry->expected_.cb_b_, &ctx))
+  B85_TRY (base85_decode_last (&ctx))
 
   size_t cb = ctx.out_pos - ctx.out;
-  if (cb != entry->input_.cb_b_)
-    goto error_exit;
-
-  if (memcmp (ctx.out, entry->input_.b_, cb))
-    goto error_exit;
-
-  base85_context_destroy (&ctx);
-  return true;
+  B85_TRY (check_cb (cb, entry->input_.cb_b_))
+  B85_TRY (check_bytes (ctx.out, entry->input_.b_, cb))
 
   error_exit:
 
   base85_context_destroy (&ctx);
-  return false;
+  return B85_E_OK == rv;
 }
 
-bool
+static bool
 run_small_test (const struct b85_test_t *entry)
 {
   struct base85_context_t ctx;
-  if (base85_context_init (&ctx))
-    return false;
+  struct base85_context_t ctx2 = { .out = NULL };
 
-  struct base85_context_t ctx2;
-  if (base85_context_init (&ctx2))
-    goto error_exit;
-
-  if (base85_encode (entry->input_.b_, entry->input_.cb_b_, &ctx))
-    goto error_exit;
-
-  if (base85_encode_last (&ctx))
-    goto error_exit;
+  b85_result_t rv = B85_E_UNSPECIFIED;
+  B85_TRY (base85_context_init (&ctx))
+  B85_TRY (base85_context_init (&ctx2))
+  B85_TRY (base85_encode (entry->input_.b_, entry->input_.cb_b_, &ctx))
+  B85_TRY (base85_encode_last (&ctx))
 
   size_t cb = ctx.out_pos - ctx.out;
-  if (cb != entry->expected_.cb_b_)
-    goto error_exit;
-
+  B85_TRY (check_cb (cb, entry->expected_.cb_b_))
   size_t result_len = strlen (ctx.out);
-  if (result_len != entry->expected_.cb_b_)
-    goto error_exit;
-
-  if (memcmp (ctx.out, entry->expected_.b_, result_len))
-    goto error_exit;
-
-  if (base85_decode (ctx.out, result_len, &ctx2))
-    goto error_exit;
-
-  if (base85_decode_last (&ctx2))
-    goto error_exit;
+  B85_TRY (check_cb (result_len, entry->expected_.cb_b_))
+  B85_TRY (check_bytes (ctx.out, entry->expected_.b_, result_len))
+  B85_TRY (base85_decode (ctx.out, result_len, &ctx2))
+  B85_TRY (base85_decode_last (&ctx2))
 
   cb = ctx2.out_pos - ctx2.out;
-  if (cb != entry->input_.cb_b_)
-    goto error_exit;
-
-  if (memcmp (entry->input_.b_, ctx2.out, cb))
-    goto error_exit;
-
-  base85_context_destroy (&ctx);
-  base85_context_destroy (&ctx2);
-  return true;
+  B85_TRY (check_cb (cb, entry->input_.cb_b_))
+  B85_TRY (check_bytes (entry->input_.b_, ctx2.out, cb))
 
   error_exit:
 
   base85_context_destroy (&ctx);
   base85_context_destroy (&ctx2);
-  return false;
+  return B85_E_OK == rv;
+}
+
+static bool
+b85_test_allbytes ()
+{
+  char input[256];
+  for (size_t i = 0; i < 256; ++i)
+    input[i] = (unsigned char) i;
+
+  struct base85_context_t ctx;
+  struct base85_context_t ctx2 = { .out = NULL };
+  b85_result_t rv = B85_E_UNSPECIFIED;
+  B85_TRY (base85_context_init (&ctx))
+  B85_TRY (base85_context_init (&ctx2))
+  B85_TRY (base85_encode (input, 256, &ctx))
+  B85_TRY (base85_encode_last (&ctx))
+  size_t cb = ctx.out_pos - ctx.out;
+  B85_TRY (base85_decode (ctx.out, cb, &ctx2))
+  B85_TRY (base85_decode_last (&ctx2))
+  size_t cb2 = ctx2.out_pos - ctx2.out;
+
+  B85_TRY (check_cb (256, cb2))
+  B85_TRY (check_bytes (input, ctx2.out, cb2))
+
+error_exit:
+  base85_context_destroy (&ctx);
+  base85_context_destroy (&ctx2);
+  return B85_E_OK == rv;
 }
 
 #define B85_CREATE_TEST(name, test, input, input_cb, encoded, encoded_cb) \
-bool b85_test_##name () { \
+static bool b85_test_##name () { \
   struct b85_test_t data = { { input, input_cb }, { encoded, encoded_cb } }; \
   return test (&data); \
 }
@@ -183,6 +197,9 @@ run_tests (int argc, char *argv[])
   printf ("decode whitespace:\n");
   B85_RUN_TEST (ws1);
   B85_RUN_TEST (ws2);
+
+  printf ("all bytes:\n");
+  B85_RUN_TEST (allbytes);
 
   printf ("\nTOTAL: %zu FAILED: %zu\n", total, total - count);
 
