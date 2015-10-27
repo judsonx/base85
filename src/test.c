@@ -168,6 +168,15 @@ error_exit:
   return B85_E_OK == rv;
 }
 
+static bool
+b85_test_types ()
+{
+  // Some (most?) of the algorithms are assuming a 1 byte char.
+  if ((sizeof (char) != 1) || (sizeof (unsigned char) != 1))
+    return false;
+  return true;
+}
+
 #define B85_CREATE_TEST(name, test, input, input_cb, encoded, encoded_cb) \
 static bool b85_test_##name () { \
   struct b85_test_t data = { { input, input_cb }, { encoded, encoded_cb } }; \
@@ -225,6 +234,9 @@ run_tests (int argc, char *argv[])
   size_t total = 0;
 
   start = clock ();
+
+  printf ("type sizes\n");
+  B85_RUN_TEST (types)
 
   printf ("small tests:\n");
   B85_RUN_TEST (s0)
