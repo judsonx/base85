@@ -61,7 +61,7 @@ handle_state (struct base85_context_t *ctx, char c)
       return true;
     }
     ctx->state = B85_S_INVALID;
-    return false;
+    return true;
 
   case B85_S_FOOTER:
   case B85_S_INVALID:
@@ -362,7 +362,6 @@ static b85_result_t
 base85_decode_strict (struct base85_context_t *ctx)
 {
   uint32_t v = 0;
-  unsigned char x;
   unsigned char *b = ctx->hold;
 
   if (base85_context_bytes_remaining (ctx) < 4)
@@ -372,22 +371,13 @@ base85_decode_strict (struct base85_context_t *ctx)
   }
 
   for (int c = 0; c < 4; ++c)
-  {
-    x = g_ascii85_decode[(unsigned) *b++];
-    if (!x--)
-      return B85_E_INVALID_CHAR;
-    v = v * 85 + x;
-  }
-
-  x = g_ascii85_decode[(unsigned) *b];
-  if (!x--)
-    return B85_E_INVALID_CHAR;
+    v = v * 85 + b[c];
 
   // Check for overflow.
-  if ((0xffffffff / 85 < v) || (0xffffffff - x < (v *= 85)))
+  if ((0xffffffff / 85 < v) || (0xffffffff - b[4] < (v *= 85)))
     return B85_E_OVERFLOW;
 
-  v += x;
+  v += b[4];
 
   for (int c = 24; c >= 0; c -= 8)
   {
@@ -408,19 +398,25 @@ base85_decode (const char *b, size_t cb_b, struct base85_context_t *ctx)
   if (!cb_b)
     return B85_E_OK;
 
-  // Skip all input if a valid footer has already been found.
-  if (B85_S_FOOTER == ctx->state)
-    return B85_E_OK;
-
   while (cb_b--)
   {
+    // Skip all input if a valid footer has already been found.
+    if (B85_S_FOOTER == ctx->state)
+      return B85_E_OK;
+
     if (B85_S_INVALID == ctx->state)
       return B85_E_BAD_FOOTER;
 
     char c = *b++;
     ctx->processed++;
 
-    if (base85_whitespace (c) || handle_state (ctx, c))
+    if ((B85_S_HEADER0 != ctx->state) && (B85_S_FOOTER0 != ctx->state))
+    {
+      if (base85_whitespace (c))
+        continue;
+    }
+
+    if (handle_state (ctx, c))
       continue;
 
     // Special case for 'z'.
@@ -437,7 +433,11 @@ base85_decode (const char *b, size_t cb_b, struct base85_context_t *ctx)
       continue;
     }
 
-    ctx->hold[ctx->pos++] = c;
+    unsigned char x = g_ascii85_decode[(unsigned) c];
+    if (!x--)
+      return B85_E_INVALID_CHAR;
+
+    ctx->hold[ctx->pos++] = x;
     if (5 == ctx->pos)
     {
       b85_result_t rv = base85_decode_strict (ctx);
