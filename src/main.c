@@ -113,7 +113,7 @@ b85_wrapper (handler_t handler)
   if (rv)
   {
     fprintf (
-      stderr, "* Error[%d]: %s. [offset: %zu]\n", rv, base85_error_string (rv),
+      stderr, "* Error[%d]: %s. [position: %zu]\n", rv, base85_error_string (rv),
       ctx.processed
     );
   }
