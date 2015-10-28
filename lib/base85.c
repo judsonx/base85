@@ -414,6 +414,9 @@ base85_decode (const char *b, size_t cb_b, struct base85_context_t *ctx)
 
   while (cb_b--)
   {
+    if (B85_S_INVALID == ctx->state)
+      return B85_E_BAD_FOOTER;
+
     char c = *b++;
     ctx->processed++;
 
