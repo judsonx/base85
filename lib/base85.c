@@ -10,10 +10,11 @@
 /// @see base85_decode_init()
 static unsigned char g_ascii85_decode[256];
 
-#define B85_HEADER0 '<'
-#define B85_HEADER1 '~'
-#define B85_FOOTER0 '~'
-#define B85_FOOTER1 '>'
+static const char B85_HEADER0 = '<';
+static const char B85_HEADER1 = '~';
+static const char B85_FOOTER0 = '~';
+static const char B85_FOOTER1 = '>';
+static const char BASE85_ZERO_CHAR = 'z';
 
 typedef enum
 {
@@ -136,8 +137,6 @@ static const unsigned char g_ascii85_encode[] = {
   'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p',
   'q', 'r', 's', 't', 'u', 
 };
-
-static const char BASE85_ZERO_CHAR = 'z';
 
 /// Initializer for g_ascii85_decode (may be called multiple times).
 static void
