@@ -63,6 +63,11 @@ base85_clear_output (struct base85_context_t *ctx);
 b85_result_t
 base85_context_init (struct base85_context_t *ctx);
 
+/// Resets an existing context, but does not free its memory. This is useful
+/// for resetting the context before encoding/decoding a new data stream.
+void
+base85_context_reset (struct base85_context_t *ctx);
+
 /// Context cleanup. Frees memory associated with the context.
 void
 base85_context_destroy (struct base85_context_t *ctx);

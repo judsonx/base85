@@ -217,6 +217,20 @@ base85_context_init (struct base85_context_t *ctx)
 }
 
 void
+base85_context_reset (struct base85_context_t *ctx)
+{
+  if (!ctx)
+    return;
+
+  // Do not reset out or out_cb.
+
+  ctx->out_pos = ctx->out;
+  ctx->processed = 0;
+  ctx->pos = 0;
+  ctx->state = B85_S_START;
+}
+
+void
 base85_context_destroy (struct base85_context_t *ctx)
 {
   if (!ctx)
