@@ -53,8 +53,7 @@ run_decode_test (const struct b85_test_t *entry)
   B85_TRY (check_cb (cb, entry->expected_.cb_b_))
   B85_TRY (check_bytes (out, entry->expected_.b_, cb))
 
-  error_exit:
-
+error_exit:
   base85_context_destroy (&ctx);
   return rv;
 }
@@ -86,8 +85,7 @@ run_encode_test (const struct b85_test_t *entry)
   B85_TRY (check_cb (cb2, entry->input_.cb_b_))
   B85_TRY (check_bytes (entry->input_.b_, out, cb2))
 
-  error_exit:
-
+error_exit:
   base85_context_destroy (&ctx);
   base85_context_destroy (&ctx2);
   return rv;

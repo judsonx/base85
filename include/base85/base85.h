@@ -3,16 +3,35 @@
 
 #include <stddef.h>
 
+/// Base85 result values.
 typedef enum
 {
+  /// Unspecified error. This value is not used by the library directly. It can
+  /// be used by clients that wish to pass through b85_result_t values.
   B85_E_UNSPECIFIED = -1,
+
+  /// Success.
   B85_E_OK = 0,
+
+  /// Out of memory.
   B85_E_OOM,
+
+  /// Decoding a byte sequence resulted in an integer overflow.
   B85_E_OVERFLOW,
+
+  /// An invalid byte was encountered (decoding).
   B85_E_INVALID_CHAR,
+
+  /// The ascii85 footer is missing, or a rogue '~' byte was encountered.
   B85_E_BAD_FOOTER,
+
+  /// Logic error in the library implementation.
   B85_E_LOGIC_ERROR,
+
+  /// Indicates API misuse by a client.
   B85_E_API_MISUSE,
+
+  /// End marker
   B85_E_END
 } b85_result_t;
 
