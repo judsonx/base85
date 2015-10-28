@@ -227,6 +227,9 @@ B85_CREATE_TEST (h5, run_decode_test, "<~BOu!rDZ~>", 11, helloworld, 5)
 B85_CREATE_TEST (h6, run_decode_test, " <~ ~> garbage", 14, helloworld, 0)
 B85_CREATE_TEST (h7, run_decode_test, "<~BE~> ~~ <> xyz", 16, helloworld, 1)
 
+// Starts out looking like a header, but isn't.
+B85_CREATE_TEST (h8, run_decode_test, "<dSb1", 5, "V{oy", 4)
+
 B85_CREATE_TEST (z1, run_encode_test, zeros, 4, "z", 1)
 B85_CREATE_TEST (z2, run_encode_test, zeros, 8, "zz", 2)
 B85_CREATE_TEST (z3, run_encode_test, zeros, 12, "zzz", 3)
@@ -305,6 +308,7 @@ run_tests (int argc, char *argv[])
   B85_RUN_EXPECT_SUCCESS (h5)
   B85_RUN_EXPECT_SUCCESS (h6)
   B85_RUN_EXPECT_SUCCESS (h7)
+  B85_RUN_EXPECT_SUCCESS (h8)
 
   printf ("decode whitespace:\n");
   B85_RUN_EXPECT_SUCCESS (ws1)
