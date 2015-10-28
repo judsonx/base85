@@ -186,12 +186,12 @@ static b85_result_t b85_test_##name () { \
   if (expected == result) \
   { \
     ++count; \
-    printf ("  PASS :: %s\n", #name); \
+    printf ("  PASS -> %s\n", #name); \
   } \
   else \
   { \
     printf ( \
-      "  FAIL :: %s (expected %s, got %s)\n", \
+      "  FAIL -> %s (expected %s, got %s)\n", \
       #name, base85_debug_error_string (expected), \
       base85_debug_error_string (result) \
     ); \
@@ -329,7 +329,7 @@ run_tests (int argc, char *argv[])
   end = clock ();
   double elapsed = (double) (end - start) / CLOCKS_PER_SEC; 
 
-  printf ("\nTOTAL: %zu FAILED: %zu in %.4fs \n", total, total - count, elapsed);
+  printf ("\n%zu TOTAL %zu FAILED in %.4fs \n", total, total - count, elapsed);
 
   if (total != count)
     return 1;
