@@ -10,6 +10,7 @@ typedef enum
   B85_E_OOM,
   B85_E_OVERFLOW,
   B85_E_INVALID_CHAR,
+  B85_E_INVALID_STATE,
   B85_E_LOGIC_ERROR,
   B85_E_API_MISUSE,
   B85_E_END
@@ -39,6 +40,10 @@ struct base85_context_t
 
   /// The total number of bytes processed as input.
   size_t processed;
+
+  /// Internal state (used for keeping track of the header/footer during
+  /// decoding).
+  unsigned char state;
 };
 
 /// Gets the output from @a ctx.

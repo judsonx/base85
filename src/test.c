@@ -211,6 +211,16 @@ B85_CREATE_TEST (s10, run_small_test, "hello worl", 10, "BOu!rD]j7BEbk", 13)
 B85_CREATE_TEST (s11, run_small_test, "hello world", 11, "BOu!rD]j7BEbo7", 14)
 B85_CREATE_TEST (s12, run_small_test, "hello world!", 12, "BOu!rD]j7BEbo80", 15)
 
+B85_CREATE_TEST (h0, run_ws_test, "", 0, "<~~>", 4)
+B85_CREATE_TEST (h1, run_ws_test, "h", 1, "<~BE~>", 6)
+B85_CREATE_TEST (h2, run_ws_test, "he", 2, "<~BOq~>", 7)
+B85_CREATE_TEST (h3, run_ws_test, "hel", 3, "<~BOtu~>", 8)
+B85_CREATE_TEST (h4, run_ws_test, "hell", 4, "<~BOu!r~>", 9)
+B85_CREATE_TEST (h5, run_ws_test, "hello", 5, "<~BOu!rDZ~>", 11)
+
+B85_CREATE_TEST (h6, run_ws_test, "", 0, " <~ ~> garbage", 14)
+B85_CREATE_TEST (h7, run_ws_test, "h", 1, "<~BE~> ~~ <> xyz", 16)
+
 B85_CREATE_TEST (z1, run_small_test, zeros, 4, "z", 1)
 B85_CREATE_TEST (z2, run_small_test, zeros, 8, "zz", 2)
 B85_CREATE_TEST (z3, run_small_test, zeros, 12, "zzz", 3)
@@ -262,6 +272,16 @@ run_tests (int argc, char *argv[])
   B85_RUN_TEST (z8)
   B85_RUN_TEST (bin1)
   B85_RUN_TEST (bin2)
+
+  printf ("header footer tests:\n");
+  B85_RUN_TEST (h0)
+  B85_RUN_TEST (h1)
+  B85_RUN_TEST (h2)
+  B85_RUN_TEST (h3)
+  B85_RUN_TEST (h4)
+  B85_RUN_TEST (h5)
+  B85_RUN_TEST (h6)
+  B85_RUN_TEST (h7)
 
   printf ("decode whitespace:\n");
   B85_RUN_TEST (ws1)

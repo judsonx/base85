@@ -6,6 +6,71 @@
 
 #define dimof(x) (sizeof(x) / sizeof(*x))
 
+typedef enum
+{
+  B85_S_START = 0,
+  B85_S_NO_HEADER,
+  B85_S_HEADER0,
+  B85_S_HEADER,
+  B85_S_FOOTER0,
+  B85_S_FOOTER,
+  B85_S_INVALID,
+  B85_S_END
+} b85_state_t;
+
+/// State transitions for handling ascii85 header/footer.
+static bool
+handle_state (struct base85_context_t *ctx, char c)
+{
+  switch (ctx->state)
+  {
+  case B85_S_START:
+    if ('<' == c)
+    {
+      ctx->state = B85_S_HEADER0;
+      return true;
+    }
+
+    ctx->state = B85_S_NO_HEADER;
+    return false;
+
+  case B85_S_NO_HEADER:
+    return false;
+
+  case B85_S_HEADER0:
+    if ('~' == c)
+    {
+      ctx->state = B85_S_HEADER;
+      return true;
+    }
+    ctx->state = B85_S_NO_HEADER;
+    return false;
+
+  case B85_S_HEADER:
+    if ('~' == c)
+    {
+      ctx->state = B85_S_FOOTER0;
+      return true;
+    }
+    return false;
+
+  case B85_S_FOOTER0:
+    if ('>' == c)
+    {
+      ctx->state = B85_S_FOOTER;
+      return true;
+    }
+    ctx->state = B85_S_INVALID;
+    return false;
+
+  case B85_S_FOOTER:
+  case B85_S_INVALID:
+    break;
+  }
+
+  return true;
+}
+
 const char *
 base85_error_string (b85_result_t val)
 {
@@ -14,6 +79,7 @@ base85_error_string (b85_result_t val)
     "Out of memory", //B85_E_OOM
     "Byte sequence resulted in an overflow", //B85_E_OVERFLOW
     "Invalid character", // B85_E_INVALID_CHAR
+    "Invalid state", // B85_E_INVALID_STATE
     "Logic error", // B85_E_LOGIC_ERROR
     "API misuse", // B85_E_API_MISUSE
   };
@@ -139,6 +205,7 @@ base85_context_init (struct base85_context_t *ctx)
   ctx->out_pos = NULL;
   ctx->processed = 0;
   ctx->pos = 0;
+  ctx->state = B85_S_START;
 
   ctx->out = malloc (INITIAL_BUFFER_SIZE);
   if (!ctx->out)
@@ -308,10 +375,20 @@ base85_decode (const char *b, size_t cb_b, struct base85_context_t *ctx)
   if (!cb_b)
     return B85_E_OK;
 
+  // Skip all input if a valid footer has already been found.
+  if (B85_S_FOOTER == ctx->state)
+    return B85_E_OK;
+
   while (cb_b--)
   {
     char c = *b++;
     ctx->processed++;
+
+    if (base85_whitespace (c) || handle_state (ctx, c))
+      continue;
+
+    if (B85_S_INVALID == ctx->state)
+      return B85_E_INVALID_STATE; 
 
     // Special case for 'z'.
     if (BASE85_ZERO_CHAR == c && !ctx->pos)
@@ -326,9 +403,6 @@ base85_decode (const char *b, size_t cb_b, struct base85_context_t *ctx)
       ctx->out_pos += 4;
       continue;
     }
-
-    if (base85_whitespace (c))
-      continue;
 
     ctx->hold[ctx->pos++] = c;
     if (5 == ctx->pos)
