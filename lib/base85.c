@@ -72,6 +72,25 @@ handle_state (struct base85_context_t *ctx, char c)
 }
 
 const char *
+base85_debug_error_string (b85_result_t val)
+{
+  static const char *m[] = {
+    "B85_E_OK",
+    "B85_E_OOM",
+    "B85_E_OVERFLOW",
+    "B85_E_INVALID_CHAR",
+    "B85_E_INVALID_STATE",
+    "B85_E_LOGIC_ERROR",
+    "B85_E_API_MISUSE",
+  };
+
+  if (val >= 0 && val < dimof (m))
+    return m[val];
+
+  return "B85_E_UNSPECIFIED";
+}
+
+const char *
 base85_error_string (b85_result_t val)
 {
   static const char *m[] = {
@@ -84,7 +103,7 @@ base85_error_string (b85_result_t val)
     "API misuse", // B85_E_API_MISUSE
   };
 
-  if (val > 0 && val < dimof (m))
+  if (val >= 0 && val < dimof (m))
     return m[val];
 
   return "Unspecified error";

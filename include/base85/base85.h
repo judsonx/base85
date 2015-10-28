@@ -16,6 +16,10 @@ typedef enum
   B85_E_END
 } b85_result_t;
 
+/// Tranlates @a val to a debug error string (i.e., "B85_E_OK").
+const char *
+base85_debug_error_string (b85_result_t val);
+
 /// Translates @a val to an error string.
 const char *
 base85_error_string (b85_result_t val);

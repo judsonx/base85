@@ -184,14 +184,19 @@ static b85_result_t b85_test_##name () { \
 }
 
 #define B85_RUN_TEST(name, expected) do { \
-  if (expected == b85_test_##name()) \
+  b85_result_t result = b85_test_##name (); \
+  if (expected == result) \
   { \
     ++count; \
     printf ("  PASS :: %s\n", #name); \
   } \
   else \
   { \
-    printf ("  FAIL :: %s\n", #name); \
+    printf ( \
+      "  FAIL :: %s (expected %s, got %s)\n", \
+      #name, base85_debug_error_string (expected), \
+      base85_debug_error_string (result) \
+    ); \
   } \
   ++total; \
 } while (0);
