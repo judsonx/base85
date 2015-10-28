@@ -38,7 +38,7 @@ check_bytes (const void *b0, const void *b1, size_t cb)
   return B85_E_OK;
 }
 
-static bool
+static b85_result_t
 run_decode_test (const struct b85_test_t *entry)
 {
   struct base85_context_t ctx;
@@ -56,10 +56,10 @@ run_decode_test (const struct b85_test_t *entry)
   error_exit:
 
   base85_context_destroy (&ctx);
-  return B85_E_OK == rv;
+  return rv;
 }
 
-static bool
+static b85_result_t
 run_encode_test (const struct b85_test_t *entry)
 {
   struct base85_context_t ctx;
@@ -90,10 +90,10 @@ run_encode_test (const struct b85_test_t *entry)
 
   base85_context_destroy (&ctx);
   base85_context_destroy (&ctx2);
-  return B85_E_OK == rv;
+  return rv;
 }
 
-static bool
+static b85_result_t
 b85_test_allbytes ()
 {
   char input[256];
@@ -122,10 +122,10 @@ b85_test_allbytes ()
 error_exit:
   base85_context_destroy (&ctx);
   base85_context_destroy (&ctx2);
-  return B85_E_OK == rv;
+  return rv;
 }
 
-static bool
+static b85_result_t
 b85_test_more_data ()
 {
   static const size_t INPUT_CHUNK_SIZE = 2048;
@@ -165,26 +165,26 @@ b85_test_more_data ()
 error_exit:
   base85_context_destroy (&ctx);
   base85_context_destroy (&ctx2);
-  return B85_E_OK == rv;
+  return rv;
 }
 
-static bool
+static b85_result_t
 b85_test_types ()
 {
   // Some (most?) of the algorithms are assuming a 1 byte char.
   if ((sizeof (char) != 1) || (sizeof (unsigned char) != 1))
-    return false;
-  return true;
+    return B85_E_UNSPECIFIED;
+  return B85_E_OK;
 }
 
 #define B85_CREATE_TEST(name, test, input, input_cb, encoded, encoded_cb) \
-static bool b85_test_##name () { \
+static b85_result_t b85_test_##name () { \
   struct b85_test_t data = { { input, input_cb }, { encoded, encoded_cb } }; \
   return test (&data); \
 }
 
-#define B85_RUN_TEST(name) do { \
-  if (b85_test_##name()) \
+#define B85_RUN_TEST(name, expected) do { \
+  if (expected == b85_test_##name()) \
   { \
     ++count; \
     printf ("  PASS :: %s\n", #name); \
@@ -195,6 +195,8 @@ static bool b85_test_##name () { \
   } \
   ++total; \
 } while (0);
+
+#define B85_RUN_EXPECT_SUCCESS(name) B85_RUN_TEST (name, B85_E_OK)
 
 static const char helloworld[] = "hello world!";
 
@@ -247,52 +249,52 @@ run_tests (int argc, char *argv[])
   start = clock ();
 
   printf ("type sizes\n");
-  B85_RUN_TEST (types)
+  B85_RUN_EXPECT_SUCCESS (types)
 
   printf ("small tests:\n");
-  B85_RUN_TEST (s0)
-  B85_RUN_TEST (s1)
-  B85_RUN_TEST (s2)
-  B85_RUN_TEST (s3)
-  B85_RUN_TEST (s4)
-  B85_RUN_TEST (s5)
-  B85_RUN_TEST (s6)
-  B85_RUN_TEST (s7)
-  B85_RUN_TEST (s8)
-  B85_RUN_TEST (s9)
-  B85_RUN_TEST (s10)
-  B85_RUN_TEST (s11)
-  B85_RUN_TEST (s12)
-  B85_RUN_TEST (z1)
-  B85_RUN_TEST (z2)
-  B85_RUN_TEST (z3)
-  B85_RUN_TEST (z4)
-  B85_RUN_TEST (z5)
-  B85_RUN_TEST (z6)
-  B85_RUN_TEST (z7)
-  B85_RUN_TEST (z8)
-  B85_RUN_TEST (bin1)
-  B85_RUN_TEST (bin2)
+  B85_RUN_EXPECT_SUCCESS (s0)
+  B85_RUN_EXPECT_SUCCESS (s1)
+  B85_RUN_EXPECT_SUCCESS (s2)
+  B85_RUN_EXPECT_SUCCESS (s3)
+  B85_RUN_EXPECT_SUCCESS (s4)
+  B85_RUN_EXPECT_SUCCESS (s5)
+  B85_RUN_EXPECT_SUCCESS (s6)
+  B85_RUN_EXPECT_SUCCESS (s7)
+  B85_RUN_EXPECT_SUCCESS (s8)
+  B85_RUN_EXPECT_SUCCESS (s9)
+  B85_RUN_EXPECT_SUCCESS (s10)
+  B85_RUN_EXPECT_SUCCESS (s11)
+  B85_RUN_EXPECT_SUCCESS (s12)
+  B85_RUN_EXPECT_SUCCESS (z1)
+  B85_RUN_EXPECT_SUCCESS (z2)
+  B85_RUN_EXPECT_SUCCESS (z3)
+  B85_RUN_EXPECT_SUCCESS (z4)
+  B85_RUN_EXPECT_SUCCESS (z5)
+  B85_RUN_EXPECT_SUCCESS (z6)
+  B85_RUN_EXPECT_SUCCESS (z7)
+  B85_RUN_EXPECT_SUCCESS (z8)
+  B85_RUN_EXPECT_SUCCESS (bin1)
+  B85_RUN_EXPECT_SUCCESS (bin2)
 
   printf ("header footer tests:\n");
-  B85_RUN_TEST (h0)
-  B85_RUN_TEST (h1)
-  B85_RUN_TEST (h2)
-  B85_RUN_TEST (h3)
-  B85_RUN_TEST (h4)
-  B85_RUN_TEST (h5)
-  B85_RUN_TEST (h6)
-  B85_RUN_TEST (h7)
+  B85_RUN_EXPECT_SUCCESS (h0)
+  B85_RUN_EXPECT_SUCCESS (h1)
+  B85_RUN_EXPECT_SUCCESS (h2)
+  B85_RUN_EXPECT_SUCCESS (h3)
+  B85_RUN_EXPECT_SUCCESS (h4)
+  B85_RUN_EXPECT_SUCCESS (h5)
+  B85_RUN_EXPECT_SUCCESS (h6)
+  B85_RUN_EXPECT_SUCCESS (h7)
 
   printf ("decode whitespace:\n");
-  B85_RUN_TEST (ws1)
-  B85_RUN_TEST (ws2)
+  B85_RUN_EXPECT_SUCCESS (ws1)
+  B85_RUN_EXPECT_SUCCESS (ws2)
 
   printf ("all bytes:\n");
-  B85_RUN_TEST (allbytes)
+  B85_RUN_EXPECT_SUCCESS (allbytes)
 
   printf ("larger\n");
-  B85_RUN_TEST (more_data)
+  B85_RUN_EXPECT_SUCCESS (more_data)
 
   end = clock ();
   double elapsed = (double) (end - start) / CLOCKS_PER_SEC; 
