@@ -20,18 +20,18 @@ typedef enum
 
 /// State transitions for handling ascii85 header/footer.
 static bool
-handle_state (struct base85_context_t *ctx, char c)
+base85_handle_state (char c, unsigned char *state)
 {
-  switch (ctx->state)
+  switch (*state)
   {
   case B85_S_START:
     if ('<' == c)
     {
-      ctx->state = B85_S_HEADER0;
+      *state = B85_S_HEADER0;
       return true;
     }
 
-    ctx->state = B85_S_NO_HEADER;
+    *state = B85_S_NO_HEADER;
     return false;
 
   case B85_S_NO_HEADER:
@@ -40,16 +40,16 @@ handle_state (struct base85_context_t *ctx, char c)
   case B85_S_HEADER0:
     if ('~' == c)
     {
-      ctx->state = B85_S_HEADER;
+      *state = B85_S_HEADER;
       return true;
     }
-    ctx->state = B85_S_NO_HEADER;
+    *state = B85_S_NO_HEADER;
     return false;
 
   case B85_S_HEADER:
     if ('~' == c)
     {
-      ctx->state = B85_S_FOOTER0;
+      *state = B85_S_FOOTER0;
       return true;
     }
     return false;
@@ -57,10 +57,10 @@ handle_state (struct base85_context_t *ctx, char c)
   case B85_S_FOOTER0:
     if ('>' == c)
     {
-      ctx->state = B85_S_FOOTER;
+      *state = B85_S_FOOTER;
       return true;
     }
-    ctx->state = B85_S_INVALID;
+    *state = B85_S_INVALID;
     return true;
 
   case B85_S_FOOTER:
@@ -144,6 +144,13 @@ base85_decode_init ()
   }
 }
 
+/// True if @a state is "critical", i.e. when whitespace is important.
+static inline bool
+base85_critical_state (b85_state_t state)
+{
+  return state == B85_S_HEADER0 || state == B85_S_FOOTER0;
+}
+
 /// Returns true if @a c is a white space character.
 static bool
 base85_whitespace (char c)
@@ -157,6 +164,12 @@ base85_whitespace (char c)
     return true;
   }
   return false;
+}
+
+static bool
+base85_can_skip (char c, b85_state_t state)
+{
+  return !base85_critical_state (state) && base85_whitespace (c);
 }
 
 /// Returns the number of free bytes in the context's output buffer.
@@ -410,13 +423,10 @@ base85_decode (const char *b, size_t cb_b, struct base85_context_t *ctx)
     char c = *b++;
     ctx->processed++;
 
-    if ((B85_S_HEADER0 != ctx->state) && (B85_S_FOOTER0 != ctx->state))
-    {
-      if (base85_whitespace (c))
-        continue;
-    }
+    if (base85_can_skip (c, (b85_state_t) ctx->state))
+      continue;
 
-    if (handle_state (ctx, c))
+    if (base85_handle_state (c, &ctx->state))
       continue;
 
     // Special case for 'z'.
