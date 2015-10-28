@@ -10,6 +10,11 @@
 /// @see base85_decode_init()
 static unsigned char g_ascii85_decode[256];
 
+#define B85_HEADER0 '<'
+#define B85_HEADER1 '~'
+#define B85_FOOTER0 '~'
+#define B85_FOOTER1 '>'
+
 typedef enum
 {
   B85_S_START = 0,
@@ -30,7 +35,7 @@ base85_handle_state (char c, struct base85_context_t *ctx)
   switch (*state)
   {
   case B85_S_START:
-    if ('<' == c)
+    if (B85_HEADER0 == c)
     {
       *state = B85_S_HEADER0;
       return true;
@@ -43,20 +48,20 @@ base85_handle_state (char c, struct base85_context_t *ctx)
     return false;
 
   case B85_S_HEADER0:
-    if ('~' == c)
+    if (B85_HEADER1 == c)
     {
       *state = B85_S_HEADER;
       return true;
     }
 
-    // Important, have to add '<' char to the hold.
-    // NOTE: Assumes that '<' is in the alphabet.
-    ctx->hold[ctx->pos++] = g_ascii85_decode[(unsigned)'<'] - 1;
+    // Important, have to add B85_HEADER0 char to the hold.
+    // NOTE: Assumes that B85_HEADER0 is in the alphabet.
+    ctx->hold[ctx->pos++] = g_ascii85_decode[(unsigned) B85_HEADER0] - 1;
     *state = B85_S_NO_HEADER;
     return false;
 
   case B85_S_HEADER:
-    if ('~' == c)
+    if (B85_FOOTER0 == c)
     {
       *state = B85_S_FOOTER0;
       return true;
@@ -64,7 +69,7 @@ base85_handle_state (char c, struct base85_context_t *ctx)
     return false;
 
   case B85_S_FOOTER0:
-    if ('>' == c)
+    if (B85_FOOTER1 == c)
     {
       *state = B85_S_FOOTER;
       return true;
