@@ -6,6 +6,10 @@
 
 #define dimof(x) (sizeof(x) / sizeof(*x))
 
+/// Ascii85 decode array. Zero indicates an invalid entry.
+/// @see base85_decode_init()
+static unsigned char g_ascii85_decode[256];
+
 typedef enum
 {
   B85_S_START = 0,
@@ -20,8 +24,9 @@ typedef enum
 
 /// State transitions for handling ascii85 header/footer.
 static bool
-base85_handle_state (char c, unsigned char *state)
+base85_handle_state (char c, struct base85_context_t *ctx)
 {
+  unsigned char *state = &ctx->state;
   switch (*state)
   {
   case B85_S_START:
@@ -43,6 +48,10 @@ base85_handle_state (char c, unsigned char *state)
       *state = B85_S_HEADER;
       return true;
     }
+
+    // Important, have to add '<' char to the hold.
+    // NOTE: Assumes that '<' is in the alphabet.
+    ctx->hold[ctx->pos++] = g_ascii85_decode[(unsigned)'<'] - 1;
     *state = B85_S_NO_HEADER;
     return false;
 
@@ -124,10 +133,6 @@ static const unsigned char g_ascii85_encode[] = {
 };
 
 static const char BASE85_ZERO_CHAR = 'z';
-
-/// Ascii85 decode array. Zero indicates an invalid entry.
-/// @see base85_decode_init()
-static unsigned char g_ascii85_decode[256];
 
 /// Initializer for g_ascii85_decode (may be called multiple times).
 static void
@@ -426,7 +431,7 @@ base85_decode (const char *b, size_t cb_b, struct base85_context_t *ctx)
     if (base85_can_skip (c, (b85_state_t) ctx->state))
       continue;
 
-    if (base85_handle_state (c, &ctx->state))
+    if (base85_handle_state (c, ctx))
       continue;
 
     // Special case for 'z'.
