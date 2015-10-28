@@ -14,7 +14,6 @@ typedef enum
   B85_S_HEADER,
   B85_S_FOOTER0,
   B85_S_FOOTER,
-  B85_S_INVALID,
   B85_S_END
 } b85_state_t;
 
@@ -60,11 +59,10 @@ handle_state (struct base85_context_t *ctx, char c)
       ctx->state = B85_S_FOOTER;
       return true;
     }
-    ctx->state = B85_S_INVALID;
+    ctx->state = B85_S_HEADER;
     return false;
 
   case B85_S_FOOTER:
-  case B85_S_INVALID:
     break;
   }
 
@@ -79,7 +77,7 @@ base85_debug_error_string (b85_result_t val)
     "B85_E_OOM",
     "B85_E_OVERFLOW",
     "B85_E_INVALID_CHAR",
-    "B85_E_INVALID_STATE",
+    "B85_E_BAD_FOOTER",
     "B85_E_LOGIC_ERROR",
     "B85_E_API_MISUSE",
   };
@@ -98,7 +96,7 @@ base85_error_string (b85_result_t val)
     "Out of memory", //B85_E_OOM
     "Byte sequence resulted in an overflow", //B85_E_OVERFLOW
     "Invalid character", // B85_E_INVALID_CHAR
-    "Invalid state", // B85_E_INVALID_STATE
+    "Missing or invalid footer", // B85_E_BAD_FOOTER
     "Logic error", // B85_E_LOGIC_ERROR
     "API misuse", // B85_E_API_MISUSE
   };
@@ -420,9 +418,6 @@ base85_decode (const char *b, size_t cb_b, struct base85_context_t *ctx)
     if (base85_whitespace (c) || handle_state (ctx, c))
       continue;
 
-    if (B85_S_INVALID == ctx->state)
-      return B85_E_INVALID_STATE; 
-
     // Special case for 'z'.
     if (BASE85_ZERO_CHAR == c && !ctx->pos)
     {
@@ -453,6 +448,12 @@ base85_decode_last (struct base85_context_t *ctx)
 {
   if (!ctx)
     return B85_E_API_MISUSE;
+
+  if (B85_S_START == ctx->state)
+    return B85_E_OK;
+
+  if ((B85_S_FOOTER != ctx->state) && (B85_S_NO_HEADER != ctx->state))
+    return B85_E_BAD_FOOTER;
 
   size_t pos = ctx->pos;
 

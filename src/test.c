@@ -252,6 +252,14 @@ B85_CREATE_TEST (f2, run_decode_test, "s8W-\"", 5, "", 0)
 B85_CREATE_TEST (f3, run_decode_test, "BOu!r", 5, "xello", 5)
 // Expect B85_E_INVALID_CHAR
 B85_CREATE_TEST (f4, run_decode_test, "~>", 2, "", 0)
+// Expect B85_E_BAD_FOOTER
+B85_CREATE_TEST (f5, run_decode_test, "<~", 2, "", 0)
+// Expect B85_E_BAD_FOOTER
+B85_CREATE_TEST (f6, run_decode_test, "<~s4IA0 ", 7, "", 0)
+// Expect B85_E_BAD_FOOTER
+B85_CREATE_TEST (f7, run_decode_test, "<~~~>", 5, "", 0)
+// Expect B85_E_BAD_FOOTER
+B85_CREATE_TEST (f8, run_decode_test, "<~B~E~>", 5, "", 0)
 
 int
 run_tests (int argc, char *argv[])
@@ -315,6 +323,10 @@ run_tests (int argc, char *argv[])
   B85_RUN_TEST (f2, B85_E_OVERFLOW)
   B85_RUN_TEST (f3, B85_E_UNSPECIFIED)
   B85_RUN_TEST (f4, B85_E_INVALID_CHAR)
+  B85_RUN_TEST (f5, B85_E_BAD_FOOTER)
+  B85_RUN_TEST (f6, B85_E_BAD_FOOTER)
+  B85_RUN_TEST (f7, B85_E_BAD_FOOTER)
+  B85_RUN_TEST (f8, B85_E_BAD_FOOTER)
 
   end = clock ();
   double elapsed = (double) (end - start) / CLOCKS_PER_SEC; 
