@@ -14,7 +14,7 @@ static const char B85_HEADER0 = '<';
 static const char B85_HEADER1 = '~';
 static const char B85_FOOTER0 = '~';
 static const char B85_FOOTER1 = '>';
-static const char BASE85_ZERO_CHAR = 'z';
+static const char B85_ZERO_CHAR = 'z';
 
 typedef enum
 {
@@ -306,7 +306,7 @@ base85_encode_strict (struct base85_context_t *ctx)
       b85_result_t rv = base85_context_grow (ctx);
       if (rv) return rv;
     }
-    *ctx->out_pos = BASE85_ZERO_CHAR;
+    *ctx->out_pos = B85_ZERO_CHAR;
     ctx->out_pos++;
     return B85_E_OK;
   }
@@ -439,7 +439,7 @@ base85_decode (const char *b, size_t cb_b, struct base85_context_t *ctx)
       continue;
 
     // Special case for 'z'.
-    if (BASE85_ZERO_CHAR == c && !ctx->pos)
+    if (B85_ZERO_CHAR == c && !ctx->pos)
     {
       if (base85_context_bytes_remaining (ctx) < 4)
       {
