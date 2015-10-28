@@ -14,6 +14,7 @@ typedef enum
   B85_S_HEADER,
   B85_S_FOOTER0,
   B85_S_FOOTER,
+  B85_S_INVALID,
   B85_S_END
 } b85_state_t;
 
@@ -59,10 +60,11 @@ handle_state (struct base85_context_t *ctx, char c)
       ctx->state = B85_S_FOOTER;
       return true;
     }
-    ctx->state = B85_S_HEADER;
+    ctx->state = B85_S_INVALID;
     return false;
 
   case B85_S_FOOTER:
+  case B85_S_INVALID:
     break;
   }
 

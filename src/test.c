@@ -257,7 +257,7 @@ B85_CREATE_TEST (f6, run_decode_test, "<~s4IA0 ", 7, "", 0)
 // Expect B85_E_BAD_FOOTER
 B85_CREATE_TEST (f7, run_decode_test, "<~~~>", 5, "", 0)
 // Expect B85_E_BAD_FOOTER
-B85_CREATE_TEST (f8, run_decode_test, "<~B~E~>", 5, "", 0)
+B85_CREATE_TEST (f8, run_decode_test, "<~B~E~>", 7, "", 0)
 
 int
 run_tests (int argc, char *argv[])
