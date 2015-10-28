@@ -39,19 +39,19 @@ check_bytes (const void *b0, const void *b1, size_t cb)
 }
 
 static bool
-run_ws_test (const struct b85_test_t *entry)
+run_decode_test (const struct b85_test_t *entry)
 {
   struct base85_context_t ctx;
   b85_result_t rv = B85_E_UNSPECIFIED;
 
   B85_TRY (base85_context_init (&ctx))
-  B85_TRY (base85_decode (entry->expected_.b_, entry->expected_.cb_b_, &ctx))
+  B85_TRY (base85_decode (entry->input_.b_, entry->input_.cb_b_, &ctx))
   B85_TRY (base85_decode_last (&ctx))
 
   size_t cb;
   char *out = base85_get_output (&ctx, &cb);
-  B85_TRY (check_cb (cb, entry->input_.cb_b_))
-  B85_TRY (check_bytes (out, entry->input_.b_, cb))
+  B85_TRY (check_cb (cb, entry->expected_.cb_b_))
+  B85_TRY (check_bytes (out, entry->expected_.b_, cb))
 
   error_exit:
 
@@ -60,7 +60,7 @@ run_ws_test (const struct b85_test_t *entry)
 }
 
 static bool
-run_small_test (const struct b85_test_t *entry)
+run_encode_test (const struct b85_test_t *entry)
 {
   struct base85_context_t ctx;
   struct base85_context_t ctx2 = { .out = NULL };
@@ -196,45 +196,46 @@ static bool b85_test_##name () { \
   ++total; \
 } while (0);
 
+static const char helloworld[] = "hello world!";
 
-B85_CREATE_TEST (s0, run_small_test, "", 0, "", 0)
-B85_CREATE_TEST (s1, run_small_test, "h", 1, "BE", 2)
-B85_CREATE_TEST (s2, run_small_test, "he", 2, "BOq", 3)
-B85_CREATE_TEST (s3, run_small_test, "hel", 3, "BOtu", 4)
-B85_CREATE_TEST (s4, run_small_test, "hell", 4, "BOu!r", 5)
-B85_CREATE_TEST (s5, run_small_test, "hello", 5, "BOu!rDZ", 7)
-B85_CREATE_TEST (s6, run_small_test, "hello ", 6, "BOu!rD]f", 8)
-B85_CREATE_TEST (s7, run_small_test, "hello w", 7, "BOu!rD]j6", 9)
-B85_CREATE_TEST (s8, run_small_test, "hello wo", 8, "BOu!rD]j7B", 10)
-B85_CREATE_TEST (s9, run_small_test, "hello wor", 9, "BOu!rD]j7BEW", 12)
-B85_CREATE_TEST (s10, run_small_test, "hello worl", 10, "BOu!rD]j7BEbk", 13)
-B85_CREATE_TEST (s11, run_small_test, "hello world", 11, "BOu!rD]j7BEbo7", 14)
-B85_CREATE_TEST (s12, run_small_test, "hello world!", 12, "BOu!rD]j7BEbo80", 15)
+B85_CREATE_TEST (s0, run_encode_test, helloworld, 0, "", 0)
+B85_CREATE_TEST (s1, run_encode_test, helloworld, 1, "BE", 2)
+B85_CREATE_TEST (s2, run_encode_test, helloworld, 2, "BOq", 3)
+B85_CREATE_TEST (s3, run_encode_test, helloworld, 3, "BOtu", 4)
+B85_CREATE_TEST (s4, run_encode_test, helloworld, 4, "BOu!r", 5)
+B85_CREATE_TEST (s5, run_encode_test, helloworld, 5, "BOu!rDZ", 7)
+B85_CREATE_TEST (s6, run_encode_test, helloworld, 6, "BOu!rD]f", 8)
+B85_CREATE_TEST (s7, run_encode_test, helloworld, 7, "BOu!rD]j6", 9)
+B85_CREATE_TEST (s8, run_encode_test, helloworld, 8, "BOu!rD]j7B", 10)
+B85_CREATE_TEST (s9, run_encode_test, helloworld, 9, "BOu!rD]j7BEW", 12)
+B85_CREATE_TEST (s10, run_encode_test, helloworld, 10, "BOu!rD]j7BEbk", 13)
+B85_CREATE_TEST (s11, run_encode_test, helloworld, 11, "BOu!rD]j7BEbo7", 14)
+B85_CREATE_TEST (s12, run_encode_test, helloworld, 12, "BOu!rD]j7BEbo80", 15)
 
-B85_CREATE_TEST (h0, run_ws_test, "", 0, "<~~>", 4)
-B85_CREATE_TEST (h1, run_ws_test, "h", 1, "<~BE~>", 6)
-B85_CREATE_TEST (h2, run_ws_test, "he", 2, "<~BOq~>", 7)
-B85_CREATE_TEST (h3, run_ws_test, "hel", 3, "<~BOtu~>", 8)
-B85_CREATE_TEST (h4, run_ws_test, "hell", 4, "<~BOu!r~>", 9)
-B85_CREATE_TEST (h5, run_ws_test, "hello", 5, "<~BOu!rDZ~>", 11)
+B85_CREATE_TEST (h0, run_decode_test, "<~~>", 4, helloworld, 0)
+B85_CREATE_TEST (h1, run_decode_test, "<~BE~>", 6, helloworld, 1)
+B85_CREATE_TEST (h2, run_decode_test, "<~BOq~>", 7, helloworld, 2)
+B85_CREATE_TEST (h3, run_decode_test, "<~BOtu~>", 8, helloworld, 3)
+B85_CREATE_TEST (h4, run_decode_test, "<~BOu!r~>", 9, helloworld, 4)
+B85_CREATE_TEST (h5, run_decode_test, "<~BOu!rDZ~>", 11, helloworld, 5)
 
-B85_CREATE_TEST (h6, run_ws_test, "", 0, " <~ ~> garbage", 14)
-B85_CREATE_TEST (h7, run_ws_test, "h", 1, "<~BE~> ~~ <> xyz", 16)
+B85_CREATE_TEST (h6, run_decode_test, " <~ ~> garbage", 14, helloworld, 0)
+B85_CREATE_TEST (h7, run_decode_test, "<~BE~> ~~ <> xyz", 16, helloworld, 1)
 
-B85_CREATE_TEST (z1, run_small_test, zeros, 4, "z", 1)
-B85_CREATE_TEST (z2, run_small_test, zeros, 8, "zz", 2)
-B85_CREATE_TEST (z3, run_small_test, zeros, 12, "zzz", 3)
-B85_CREATE_TEST (z4, run_small_test, zeros, 16, "zzzz", 4)
-B85_CREATE_TEST (z5, run_small_test, zeros, 20, "zzzzz", 5)
-B85_CREATE_TEST (z6, run_small_test, zeros, 24, "zzzzzz", 6)
-B85_CREATE_TEST (z7, run_small_test, zeros, 28, "zzzzzzz", 7)
-B85_CREATE_TEST (z8, run_small_test, zeros, 32, "zzzzzzzz", 8)
+B85_CREATE_TEST (z1, run_encode_test, zeros, 4, "z", 1)
+B85_CREATE_TEST (z2, run_encode_test, zeros, 8, "zz", 2)
+B85_CREATE_TEST (z3, run_encode_test, zeros, 12, "zzz", 3)
+B85_CREATE_TEST (z4, run_encode_test, zeros, 16, "zzzz", 4)
+B85_CREATE_TEST (z5, run_encode_test, zeros, 20, "zzzzz", 5)
+B85_CREATE_TEST (z6, run_encode_test, zeros, 24, "zzzzzz", 6)
+B85_CREATE_TEST (z7, run_encode_test, zeros, 28, "zzzzzzz", 7)
+B85_CREATE_TEST (z8, run_encode_test, zeros, 32, "zzzzzzzz", 8)
 
-B85_CREATE_TEST (bin1, run_small_test, binary1, 4,"s4IA0", 5)
-B85_CREATE_TEST (bin2, run_small_test, binary2, 4,"s8W-!", 5)
+B85_CREATE_TEST (bin1, run_encode_test, binary1, 4,"s4IA0", 5)
+B85_CREATE_TEST (bin2, run_encode_test, binary2, 4,"s8W-!", 5)
 
-B85_CREATE_TEST (ws1, run_ws_test, "hello world", 11, " B\tOu  !rD]\nj7B\rEb o7  ", 23)
-B85_CREATE_TEST (ws2, run_ws_test, "hello world", 11, "B\t\n\nOu!  rD]j7BEbo7\r\n", 21)
+B85_CREATE_TEST (ws1, run_decode_test, " B\tOu  !rD]\nj7B\rEb o7  ", 23, helloworld, 11)
+B85_CREATE_TEST (ws2, run_decode_test, "B\t\n\nOu!  rD]j7BEbo7\r\n", 21, helloworld, 11)
 
 int
 run_tests (int argc, char *argv[])
