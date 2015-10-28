@@ -239,6 +239,15 @@ B85_CREATE_TEST (bin2, run_encode_test, binary2, 4,"s8W-!", 5)
 B85_CREATE_TEST (ws1, run_decode_test, " B\tOu  !rD]\nj7B\rEb o7  ", 23, helloworld, 11)
 B85_CREATE_TEST (ws2, run_decode_test, "B\t\n\nOu!  rD]j7BEbo7\r\n", 21, helloworld, 11)
 
+// Expect B85_E_INVALID_CHAR
+B85_CREATE_TEST (f1, run_decode_test, "abcx", 4, "", 0)
+// Expect B85_E_OVERFLOW
+B85_CREATE_TEST (f2, run_decode_test, "s8W-\"", 5, "", 0)
+// Expect B85_E_UNSPECIFIED
+B85_CREATE_TEST (f3, run_decode_test, "BOu!r", 5, "xello", 5)
+// Expect B85_E_INVALID_CHAR
+B85_CREATE_TEST (f4, run_decode_test, "~>", 2, "", 0)
+
 int
 run_tests (int argc, char *argv[])
 {
@@ -295,6 +304,12 @@ run_tests (int argc, char *argv[])
 
   printf ("larger\n");
   B85_RUN_EXPECT_SUCCESS (more_data)
+
+  printf ("failure cases\n");
+  B85_RUN_TEST (f1, B85_E_INVALID_CHAR)
+  B85_RUN_TEST (f2, B85_E_OVERFLOW)
+  B85_RUN_TEST (f3, B85_E_UNSPECIFIED)
+  B85_RUN_TEST (f4, B85_E_INVALID_CHAR)
 
   end = clock ();
   double elapsed = (double) (end - start) / CLOCKS_PER_SEC; 
