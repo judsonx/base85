@@ -284,13 +284,6 @@ base85_context_destroy (struct base85_context_t *ctx)
   free (out);
 }
 
-size_t
-base85_required_buffer_size (size_t input_size)
-{
-  size_t s = ((input_size + 3) / 4) * 4;
-  return 1 + s + (s / 4);
-}
-
 static b85_result_t
 base85_encode_strict (struct base85_context_t *ctx)
 {
