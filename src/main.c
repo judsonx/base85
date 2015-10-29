@@ -114,7 +114,7 @@ b85_wrapper (handler_t handler)
   {
     fprintf (
       stderr, "* Error[%d]: %s. [position: %zu]\n", rv, base85_error_string (rv),
-      ctx.processed
+      base85_get_processed (&ctx)
     );
   }
   base85_context_destroy (&ctx);

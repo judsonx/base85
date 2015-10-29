@@ -75,6 +75,10 @@ struct base85_context_t
 char *
 base85_get_output (struct base85_context_t *ctx, size_t *cb);
 
+/// Gets the number of input bytes processed by @a ctx.
+size_t
+base85_get_processed (struct base85_context_t *ctx);
+
 /// Clears the output buffer in @a ctx. i.e. the next call to
 /// base85_get_output() will return a byte count of zero.
 /// @pre @a ctx is valid.

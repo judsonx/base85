@@ -233,6 +233,12 @@ base85_get_output (struct base85_context_t *ctx, size_t *cb)
   return ctx->out;
 }
 
+size_t
+base85_get_processed (struct base85_context_t *ctx)
+{
+  return ctx ? ctx->processed : 0;
+}
+
 void
 base85_clear_output (struct base85_context_t *ctx)
 {
