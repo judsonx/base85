@@ -213,6 +213,16 @@ base85_context_grow (struct base85_context_t *ctx)
   return B85_E_OK;
 }
 
+/// Makes sure there is at least @a request bytes available in @a ctx.
+static b85_result_t
+base85_context_request_memory (struct base85_context_t *ctx, size_t request)
+{
+  if (base85_context_bytes_remaining (ctx) >= request)
+    return B85_E_OK;
+
+  return base85_context_grow (ctx);
+}
+
 char *
 base85_get_output (struct base85_context_t *ctx, size_t *cb)
 {
@@ -292,23 +302,20 @@ base85_encode_strict (struct base85_context_t *ctx)
 
   ctx->pos = 0;
 
+  b85_result_t rv = B85_E_UNSPECIFIED;
   if (!v)
   {
-    if (base85_context_bytes_remaining (ctx) < 1)
-    {
-      b85_result_t rv = base85_context_grow (ctx);
-      if (rv) return rv;
-    }
+    rv = base85_context_request_memory (ctx, 1);
+    if (rv)
+      return rv;
     *ctx->out_pos = B85_ZERO_CHAR;
     ctx->out_pos++;
     return B85_E_OK;
   }
 
-  if (base85_context_bytes_remaining (ctx) < 5)
-  {
-    b85_result_t rv = base85_context_grow (ctx);
-    if (rv) return rv;
-  }
+  rv = base85_context_request_memory (ctx, 5);
+  if (rv)
+    return rv;
 
   for (int c = 4; c >= 0; --c)
   {
@@ -352,24 +359,22 @@ base85_encode_last (struct base85_context_t *ctx)
   size_t pos = ctx->pos;
   if (!pos)
   {
-    if (base85_context_bytes_remaining (ctx) < 1)
-    {
-      rv = base85_context_grow (ctx);
-      if (rv) return rv;
-    }
-    *ctx->out_pos = 0;
-    return B85_E_OK;
+    rv = base85_context_request_memory (ctx, 1);
+    if (B85_E_OK == rv)
+      *ctx->out_pos = 0;
+    return rv;
   }
 
   for (size_t i = pos; i < 4; ++i)
     ctx->hold[i] = 0;
 
   rv = base85_encode_strict (ctx);
-  if (rv) return rv;
-
-  ctx->out_pos -= 4 - pos;
-  *ctx->out_pos = 0;
-  return B85_E_OK;
+  if (B85_E_OK == rv)
+  {
+    ctx->out_pos -= 4 - pos;
+    *ctx->out_pos = 0;
+  }
+  return rv;
 }
 
 /// Decodes exactly 5 bytes from the decode context.
@@ -379,11 +384,10 @@ base85_decode_strict (struct base85_context_t *ctx)
   uint32_t v = 0;
   unsigned char *b = ctx->hold;
 
-  if (base85_context_bytes_remaining (ctx) < 4)
-  {
-    b85_result_t rv = base85_context_grow (ctx);
-    if (rv) return rv;
-  }
+  b85_result_t rv = B85_E_UNSPECIFIED;
+  rv = base85_context_request_memory (ctx, 4);
+  if (rv)
+    return rv;
 
   for (int c = 0; c < 4; ++c)
     v = v * 85 + b[c];
@@ -413,6 +417,7 @@ base85_decode (const char *b, size_t cb_b, struct base85_context_t *ctx)
   if (!cb_b)
     return B85_E_OK;
 
+  b85_result_t rv = B85_E_UNSPECIFIED;
   while (cb_b--)
   {
     // Skip all input if a valid footer has already been found.
@@ -434,11 +439,9 @@ base85_decode (const char *b, size_t cb_b, struct base85_context_t *ctx)
     // Special case for 'z'.
     if (B85_ZERO_CHAR == c && !ctx->pos)
     {
-      if (base85_context_bytes_remaining (ctx) < 4)
-      {
-        b85_result_t rv = base85_context_grow (ctx);
-        if (rv) return rv;
-      }
+      rv = base85_context_request_memory (ctx, 4);
+      if (rv)
+        return rv;
 
       memset (ctx->out_pos, 0, 4);
       ctx->out_pos += 4;
@@ -452,8 +455,9 @@ base85_decode (const char *b, size_t cb_b, struct base85_context_t *ctx)
     ctx->hold[ctx->pos++] = x;
     if (5 == ctx->pos)
     {
-      b85_result_t rv = base85_decode_strict (ctx);
-      if (rv) return rv;
+      rv = base85_decode_strict (ctx);
+      if (rv)
+        return rv;
     }
   }
 
@@ -481,7 +485,8 @@ base85_decode_last (struct base85_context_t *ctx)
     ctx->hold[i] = g_ascii85_encode[dimof (g_ascii85_encode) - 1];
 
   b85_result_t rv = base85_decode_strict (ctx);
-  if (rv) return rv;
+  if (rv)
+    return rv;
 
   ctx->out_pos -= 5 - pos;
   return B85_E_OK;
