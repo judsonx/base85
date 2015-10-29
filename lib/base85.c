@@ -6,9 +6,9 @@
 
 #define dimof(x) (sizeof(x) / sizeof(*x))
 
-/// Ascii85 decode array. Zero indicates an invalid entry.
+/// Base85 decode array. Zero indicates an invalid entry.
 /// @see base85_decode_init()
-static unsigned char g_ascii85_decode[256];
+static unsigned char g_base85_decode[256];
 
 static const char B85_HEADER0 = '<';
 static const char B85_HEADER1 = '~';
@@ -57,7 +57,7 @@ base85_handle_state (char c, struct base85_context_t *ctx)
 
     // Important, have to add B85_HEADER0 char to the hold.
     // NOTE: Assumes that B85_HEADER0 is in the alphabet.
-    ctx->hold[ctx->pos++] = g_ascii85_decode[(unsigned) B85_HEADER0] - 1;
+    ctx->hold[ctx->pos++] = g_base85_decode[(unsigned) B85_HEADER0] - 1;
     *state = B85_S_NO_HEADER;
     return false;
 
@@ -123,8 +123,11 @@ base85_error_string (b85_result_t val)
 
   return "Unspecified error";
 }
+
+#if !defined (B85_ZEROMQ)
+
 /// Ascii85 alphabet.
-static const unsigned char g_ascii85_encode[] = {
+static const unsigned char g_base85_encode[] = {
   '!', '"', '#', '$', '%', '&', '\'', '(',
   ')', '*', '+', ',', '-', '.', '/', '0',
   '1', '2', '3', '4', '5', '6', '7', '8',
@@ -138,18 +141,37 @@ static const unsigned char g_ascii85_encode[] = {
   'q', 'r', 's', 't', 'u', 
 };
 
-/// Initializer for g_ascii85_decode (may be called multiple times).
+#else
+
+/// ZeroMQ (Z85) alphabet.
+static const unsigned char g_base85_encode[] = {
+  '0', '1', '2', '3', '4', '5', '6', '7',
+  '8', '9', 'a', 'b', 'c', 'd', 'e', 'f',
+  'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
+  'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
+  'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D',
+  'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L',
+  'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T',
+  'U', 'V', 'W', 'X', 'Y', 'Z', '.', '-',
+  ':', '+', '=', '^', '!', '/', '*', '?',
+  '&', '<', '>', '(', ')', '[', ']', '{',
+  '}', '@', '%', '$', '#'
+};
+
+#endif
+
+/// Initializer for g_base85_decode (may be called multiple times).
 static void
 base85_decode_init ()
 {
-  if (g_ascii85_decode[g_ascii85_encode[0]])
+  if (g_base85_decode[g_base85_encode[0]])
     return;
 
-  // NOTE: Assumes g_ascii85_decode[] was implicitly initialized with zeros.
-  for (size_t i = 0; i < dimof (g_ascii85_encode); ++i)
+  // NOTE: Assumes g_base85_decode[] was implicitly initialized with zeros.
+  for (size_t i = 0; i < dimof (g_base85_encode); ++i)
   {
-    unsigned char c = g_ascii85_encode[i];
-    g_ascii85_decode[c] = i + 1;
+    unsigned char c = g_base85_encode[i];
+    g_base85_decode[c] = i + 1;
   }
 }
 
@@ -309,6 +331,8 @@ base85_encode_strict (struct base85_context_t *ctx)
   ctx->pos = 0;
 
   b85_result_t rv = B85_E_UNSPECIFIED;
+
+#if !defined (B85_ZEROMQ)
   if (!v)
   {
     rv = base85_context_request_memory (ctx, 1);
@@ -318,6 +342,7 @@ base85_encode_strict (struct base85_context_t *ctx)
     ctx->out_pos++;
     return B85_E_OK;
   }
+#endif
 
   rv = base85_context_request_memory (ctx, 5);
   if (rv)
@@ -325,7 +350,7 @@ base85_encode_strict (struct base85_context_t *ctx)
 
   for (int c = 4; c >= 0; --c)
   {
-    ctx->out_pos[c] = g_ascii85_encode[v % 85];
+    ctx->out_pos[c] = g_base85_encode[v % 85];
     v /= 85;
   }
   ctx->out_pos += 5;
@@ -442,6 +467,7 @@ base85_decode (const char *b, size_t cb_b, struct base85_context_t *ctx)
     if (base85_handle_state (c, ctx))
       continue;
 
+#if !defined (B85_ZEROMQ)
     // Special case for 'z'.
     if (B85_ZERO_CHAR == c && !ctx->pos)
     {
@@ -453,8 +479,9 @@ base85_decode (const char *b, size_t cb_b, struct base85_context_t *ctx)
       ctx->out_pos += 4;
       continue;
     }
+#endif
 
-    unsigned char x = g_ascii85_decode[(unsigned) c];
+    unsigned char x = g_base85_decode[(unsigned) c];
     if (!x--)
       return B85_E_INVALID_CHAR;
 
@@ -488,7 +515,7 @@ base85_decode_last (struct base85_context_t *ctx)
     return B85_E_OK;
 
   for (int i = pos; i < 5; ++i)
-    ctx->hold[i] = g_ascii85_encode[dimof (g_ascii85_encode) - 1];
+    ctx->hold[i] = g_base85_encode[dimof (g_base85_encode) - 1];
 
   b85_result_t rv = base85_decode_strict (ctx);
   if (rv)
