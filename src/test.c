@@ -317,10 +317,10 @@ run_tests (int argc, char *argv[])
   printf ("all bytes:\n");
   B85_RUN_EXPECT_SUCCESS (allbytes)
 
-  printf ("larger\n");
+  printf ("larger:\n");
   B85_RUN_EXPECT_SUCCESS (more_data)
 
-  printf ("failure cases\n");
+  printf ("failure cases:\n");
   B85_RUN_TEST (f1, B85_E_INVALID_CHAR)
   B85_RUN_TEST (f2, B85_E_OVERFLOW)
   B85_RUN_TEST (f3, B85_E_UNSPECIFIED)
