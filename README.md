@@ -19,6 +19,7 @@ The binaries will be generated in the `build` folder.
 Currently, tests only exist for the 'ascii85' encoder/decoder.
 
   - Run the tests (from the project folder): `build/ascii85_test`
+  - Or via CTest: `cmake --build build --target test`
 
 ## CLI
 
