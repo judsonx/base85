@@ -91,7 +91,7 @@ base85_debug_error_string (b85_result_t val)
 {
   static const char *m[] = {
     "B85_E_OK",
-    "B85_E_OOM",
+    "B85_E_BAD_ALLOC",
     "B85_E_OVERFLOW",
     "B85_E_INVALID_CHAR",
     "B85_E_BAD_FOOTER",
@@ -110,7 +110,7 @@ base85_error_string (b85_result_t val)
 {
   static const char *m[] = {
     "Success", // B85_E_OK
-    "Out of memory", //B85_E_OOM
+    "Bad Alloc", //B85_E_BAD_ALLOC
     "Byte sequence resulted in an overflow", //B85_E_OVERFLOW
     "Invalid character", // B85_E_INVALID_CHAR
     "Missing or invalid footer", // B85_E_BAD_FOOTER
@@ -204,7 +204,7 @@ base85_context_grow (struct base85_context_t *ctx)
     // Try a smaller allocation.
     buffer = realloc (ctx->out, ctx->out_cb + SMALL_DELTA);
     if (!buffer)
-      return B85_E_OOM;
+      return B85_E_BAD_ALLOC;
   }
 
   ctx->out = buffer;
@@ -250,7 +250,7 @@ base85_context_init (struct base85_context_t *ctx)
 
   ctx->out = malloc (INITIAL_BUFFER_SIZE);
   if (!ctx->out)
-    return B85_E_OOM;
+    return B85_E_BAD_ALLOC;
 
   ctx->out_pos = ctx->out;
   ctx->out_cb = INITIAL_BUFFER_SIZE;

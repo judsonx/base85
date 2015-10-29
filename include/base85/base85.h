@@ -13,8 +13,8 @@ typedef enum
   /// Success.
   B85_E_OK = 0,
 
-  /// Out of memory.
-  B85_E_OOM,
+  /// Memory allocation failure.
+  B85_E_BAD_ALLOC,
 
   /// Decoding a byte sequence resulted in an integer overflow.
   B85_E_OVERFLOW,
