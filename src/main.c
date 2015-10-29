@@ -50,21 +50,21 @@ b85_encode (struct base85_context_t *ctx)
   char *out = NULL;
   while ((input_cb = read (0, input, INPUT_BUFFER_MAX)))
   {
-    rv = base85_encode (input, input_cb, ctx);
+    rv = B85_ENCODE (input, input_cb, ctx);
     if (rv)
       return rv;
 
-    out = base85_get_output (ctx, &cb);
+    out = B85_GET_OUTPUT (ctx, &cb);
     print_offset = print_max_width (
       out, cb, ENCODED_LINE_LENGTH, print_offset
     );
-    base85_clear_output (ctx);
+    B85_CLEAR_OUTPUT (ctx);
   }
-  rv = base85_encode_last (ctx);
+  rv = B85_ENCODE_LAST (ctx);
   if (rv)
     return rv;
 
-  out = base85_get_output (ctx, &cb);
+  out = B85_GET_OUTPUT (ctx, &cb);
   (void) print_max_width (out, cb, ENCODED_LINE_LENGTH, print_offset);
   (void) putchar ('\n');
 
@@ -81,21 +81,21 @@ b85_decode (struct base85_context_t *ctx)
   char *out = NULL;
   while ((input_cb = read (0, input, INPUT_BUFFER_MAX)))
   {
-    rv = base85_decode (input, input_cb, ctx);
+    rv = B85_DECODE (input, input_cb, ctx);
     if (rv)
       return rv;
 
     size_t out_cb;
-    out = base85_get_output (ctx, &out_cb);
+    out = B85_GET_OUTPUT (ctx, &out_cb);
     (void) write (1, out, out_cb);
-    base85_clear_output (ctx);
+    B85_CLEAR_OUTPUT (ctx);
   }
-  rv = base85_decode_last (ctx);
+  rv = B85_DECODE_LAST (ctx);
   if (rv)
     return rv;
 
   size_t out_cb;
-  out = base85_get_output (ctx, &out_cb);
+  out = B85_GET_OUTPUT (ctx, &out_cb);
   (void) write (1, out, out_cb);
 
   return B85_E_OK;
@@ -107,17 +107,18 @@ static b85_result_t
 b85_wrapper (handler_t handler)
 {
   struct base85_context_t ctx;
-  b85_result_t rv = base85_context_init (&ctx);
+  b85_result_t rv = B85_CONTEXT_INIT (&ctx);
   if (B85_E_OK == rv)
     rv = handler (&ctx);
   if (rv)
   {
     fprintf (
-      stderr, "* Error[%d]: %s. [position: %zu]\n", rv, base85_error_string (rv),
-      base85_get_processed (&ctx)
+      stderr, "* Error[%d]: %s. [position: %zu]\n", rv,
+      B85_ERROR_STRING (rv),
+      B85_GET_PROCESSED (&ctx)
     );
   }
-  base85_context_destroy (&ctx);
+  B85_CONTEXT_DESTROY (&ctx);
   return (B85_E_OK == rv) ? 0 : 1;
 }
 

@@ -3,6 +3,25 @@
 
 #include <stddef.h>
 
+#if defined (B85_ZEROMQ)
+#define B85_NAME(name) z85_##name
+#else
+#define B85_NAME(name) ascii85_##name
+#endif
+
+#define B85_DEBUG_ERROR_STRING B85_NAME (debug_error_string)
+#define B85_ERROR_STRING B85_NAME (error_string)
+#define B85_GET_OUTPUT B85_NAME (get_output)
+#define B85_GET_PROCESSED B85_NAME (get_processed)
+#define B85_CLEAR_OUTPUT B85_NAME (clear_output)
+#define B85_CONTEXT_INIT B85_NAME (context_init)
+#define B85_CONTEXT_RESET B85_NAME (context_reset)
+#define B85_CONTEXT_DESTROY B85_NAME (context_destroy)
+#define B85_ENCODE B85_NAME (encode)
+#define B85_ENCODE_LAST B85_NAME (encode_last)
+#define B85_DECODE B85_NAME (decode)
+#define B85_DECODE_LAST B85_NAME (decode_last)
+
 /// Base85 result values.
 typedef enum
 {
@@ -37,11 +56,11 @@ typedef enum
 
 /// Tranlates @a val to a debug error string (i.e., "B85_E_OK").
 const char *
-base85_debug_error_string (b85_result_t val);
+B85_DEBUG_ERROR_STRING (b85_result_t val);
 
 /// Translates @a val to an error string.
 const char *
-base85_error_string (b85_result_t val);
+B85_ERROR_STRING (b85_result_t val);
 
 /// Context for the base85 decode functions.
 struct base85_context_t
@@ -73,64 +92,64 @@ struct base85_context_t
 /// Returns the number of available bytes in @a cb.
 /// @pre @a ctx is valid.
 char *
-base85_get_output (struct base85_context_t *ctx, size_t *cb);
+B85_GET_OUTPUT (struct base85_context_t *ctx, size_t *cb);
 
 /// Gets the number of input bytes processed by @a ctx.
 size_t
-base85_get_processed (struct base85_context_t *ctx);
+B85_GET_PROCESSED (struct base85_context_t *ctx);
 
 /// Clears the output buffer in @a ctx. i.e. the next call to
-/// base85_get_output() will return a byte count of zero.
+/// B85_GET_OUTPUT() will return a byte count of zero.
 /// @pre @a ctx is valid.
 void
-base85_clear_output (struct base85_context_t *ctx);
+B85_CLEAR_OUTPUT (struct base85_context_t *ctx);
 
 /// Initializes a context object.
-/// When done with the context, call base85_context_destroy().
+/// When done with the context, call B85_CONTEXT_DESTROY().
 b85_result_t
-base85_context_init (struct base85_context_t *ctx);
+B85_CONTEXT_INIT (struct base85_context_t *ctx);
 
 /// Resets an existing context, but does not free its memory. This is useful
 /// for resetting the context before encoding/decoding a new data stream.
 void
-base85_context_reset (struct base85_context_t *ctx);
+B85_CONTEXT_RESET (struct base85_context_t *ctx);
 
 /// Context cleanup. Frees memory associated with the context.
 void
-base85_context_destroy (struct base85_context_t *ctx);
+B85_CONTEXT_DESTROY (struct base85_context_t *ctx);
 
 /// Encodes @a cb_b characters from @a b, and stores the result in @a ctx.
 /// @pre @a b must contain at least @a cb_b bytes, and @a ctx must be a valid
 /// context. 
 ///
-/// Note: base85_encode_last() must be called in order to finalize the encode
+/// Note: B85_ENCODE_LAST() must be called in order to finalize the encode
 /// operation.
 b85_result_t
-base85_encode (const char *b, size_t cb_b, struct base85_context_t *ctx);
+B85_ENCODE (const char *b, size_t cb_b, struct base85_context_t *ctx);
 
 /// Finalizes an encode operation that was initiated by calling base85_encode().
 /// @pre @a ctx must be valid.
 b85_result_t
-base85_encode_last (struct base85_context_t *ctx);
+B85_ENCODE_LAST (struct base85_context_t *ctx);
 
 /// Decodes @a cb_b characters from @a b. The result is stored in @a ctx.
 /// @pre @a b must contain at least @a cb_b bytes, and @a ctx must be a valid
 /// context.
 ///
-/// Note: base85_decode_last() must be called in order to finalize the decode
+/// Note: B85_DECODE_LAST() must be called in order to finalize the decode
 /// operation.
 ///
 /// @return 0 for success.
 b85_result_t
-base85_decode (
+B85_DECODE (
   const char *b, size_t cb_b, struct base85_context_t *ctx
 );
 
-/// Finalizes a decode operation that was initiated by calling base85_decode().
+/// Finalizes a decode operation that was initiated by calling B85_DECODE().
 /// @pre @a ctx must be valid.
 ///
 /// @return 0 for success.
 b85_result_t
-base85_decode_last (struct base85_context_t *ctx);
+B85_DECODE_LAST (struct base85_context_t *ctx);
 
 #endif // !defined (BASE85_H__INCLUDED__)

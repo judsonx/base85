@@ -44,17 +44,17 @@ run_decode_test (const struct b85_test_t *entry)
   struct base85_context_t ctx;
   b85_result_t rv = B85_E_UNSPECIFIED;
 
-  B85_TRY (base85_context_init (&ctx))
-  B85_TRY (base85_decode (entry->input_.b_, entry->input_.cb_b_, &ctx))
-  B85_TRY (base85_decode_last (&ctx))
+  B85_TRY (B85_CONTEXT_INIT (&ctx))
+  B85_TRY (B85_DECODE (entry->input_.b_, entry->input_.cb_b_, &ctx))
+  B85_TRY (B85_DECODE_LAST (&ctx))
 
   size_t cb;
-  char *out = base85_get_output (&ctx, &cb);
+  char *out = B85_GET_OUTPUT (&ctx, &cb);
   B85_TRY (check_cb (cb, entry->expected_.cb_b_))
   B85_TRY (check_bytes (out, entry->expected_.b_, cb))
 
 error_exit:
-  base85_context_destroy (&ctx);
+  B85_CONTEXT_DESTROY (&ctx);
   return rv;
 }
 
@@ -66,28 +66,28 @@ run_encode_test (const struct b85_test_t *entry)
 
   b85_result_t rv = B85_E_UNSPECIFIED;
   char *out = NULL;
-  B85_TRY (base85_context_init (&ctx))
-  B85_TRY (base85_context_init (&ctx2))
-  B85_TRY (base85_encode (entry->input_.b_, entry->input_.cb_b_, &ctx))
-  B85_TRY (base85_encode_last (&ctx))
+  B85_TRY (B85_CONTEXT_INIT (&ctx))
+  B85_TRY (B85_CONTEXT_INIT (&ctx2))
+  B85_TRY (B85_ENCODE (entry->input_.b_, entry->input_.cb_b_, &ctx))
+  B85_TRY (B85_ENCODE_LAST (&ctx))
 
   size_t cb;
-  out = base85_get_output (&ctx, &cb);
+  out = B85_GET_OUTPUT (&ctx, &cb);
   B85_TRY (check_cb (cb, entry->expected_.cb_b_))
   size_t result_len = strlen (out);
   B85_TRY (check_cb (result_len, entry->expected_.cb_b_))
   B85_TRY (check_bytes (out, entry->expected_.b_, result_len))
-  B85_TRY (base85_decode (out, result_len, &ctx2))
-  B85_TRY (base85_decode_last (&ctx2))
+  B85_TRY (B85_DECODE (out, result_len, &ctx2))
+  B85_TRY (B85_DECODE_LAST (&ctx2))
 
   size_t cb2;
-  out = base85_get_output (&ctx2, &cb2);
+  out = B85_GET_OUTPUT (&ctx2, &cb2);
   B85_TRY (check_cb (cb2, entry->input_.cb_b_))
   B85_TRY (check_bytes (entry->input_.b_, out, cb2))
 
 error_exit:
-  base85_context_destroy (&ctx);
-  base85_context_destroy (&ctx2);
+  B85_CONTEXT_DESTROY (&ctx);
+  B85_CONTEXT_DESTROY (&ctx2);
   return rv;
 }
 
@@ -102,24 +102,24 @@ b85_test_allbytes ()
   struct base85_context_t ctx2 = { .out = NULL };
   b85_result_t rv = B85_E_UNSPECIFIED;
   char *out = NULL;
-  B85_TRY (base85_context_init (&ctx))
-  B85_TRY (base85_context_init (&ctx2))
-  B85_TRY (base85_encode (input, 256, &ctx))
-  B85_TRY (base85_encode_last (&ctx))
+  B85_TRY (B85_CONTEXT_INIT (&ctx))
+  B85_TRY (B85_CONTEXT_INIT (&ctx2))
+  B85_TRY (B85_ENCODE (input, 256, &ctx))
+  B85_TRY (B85_ENCODE_LAST (&ctx))
   size_t cb;
-  out = base85_get_output (&ctx, &cb);
-  B85_TRY (base85_decode (out, cb, &ctx2))
-  B85_TRY (base85_decode_last (&ctx2))
+  out = B85_GET_OUTPUT (&ctx, &cb);
+  B85_TRY (B85_DECODE (out, cb, &ctx2))
+  B85_TRY (B85_DECODE_LAST (&ctx2))
 
   size_t cb2;
-  out = base85_get_output (&ctx2, &cb2);
+  out = B85_GET_OUTPUT (&ctx2, &cb2);
 
   B85_TRY (check_cb (256, cb2))
   B85_TRY (check_bytes (input, out, cb2))
 
 error_exit:
-  base85_context_destroy (&ctx);
-  base85_context_destroy (&ctx2);
+  B85_CONTEXT_DESTROY (&ctx);
+  B85_CONTEXT_DESTROY (&ctx2);
   return rv;
 }
 
@@ -137,32 +137,32 @@ b85_test_more_data ()
   struct base85_context_t ctx2 = { .out = NULL };
   b85_result_t rv = B85_E_UNSPECIFIED;
   char *out = NULL;
-  B85_TRY (base85_context_init (&ctx))
-  B85_TRY (base85_context_init (&ctx2))
+  B85_TRY (B85_CONTEXT_INIT (&ctx))
+  B85_TRY (B85_CONTEXT_INIT (&ctx2))
 
   size_t cb;
   for (size_t i = 0; i < N_ITERATIONS; ++i)
   {
-    B85_TRY (base85_encode (input, INPUT_CHUNK_SIZE, &ctx))
-    out = base85_get_output (&ctx, &cb);
+    B85_TRY (B85_ENCODE (input, INPUT_CHUNK_SIZE, &ctx))
+    out = B85_GET_OUTPUT (&ctx, &cb);
 
-    B85_TRY (base85_decode (out, cb, &ctx2))
-    out = base85_get_output (&ctx2, &cb);
+    B85_TRY (B85_DECODE (out, cb, &ctx2))
+    out = B85_GET_OUTPUT (&ctx2, &cb);
     B85_TRY (check_cb (cb, INPUT_CHUNK_SIZE))
     B85_TRY (check_bytes (out, input, cb))
-    base85_clear_output (&ctx);
-    base85_clear_output (&ctx2);
+    B85_CLEAR_OUTPUT (&ctx);
+    B85_CLEAR_OUTPUT (&ctx2);
   }
-  B85_TRY (base85_encode_last (&ctx))
-  B85_TRY (base85_decode_last (&ctx2))
+  B85_TRY (B85_ENCODE_LAST (&ctx))
+  B85_TRY (B85_DECODE_LAST (&ctx2))
 
   // Sanity check on buffer size.
   if (ctx.out_cb > INPUT_CHUNK_SIZE * 2 || ctx2.out_cb > INPUT_CHUNK_SIZE * 2)
     rv = B85_E_UNSPECIFIED;
 
 error_exit:
-  base85_context_destroy (&ctx);
-  base85_context_destroy (&ctx2);
+  B85_CONTEXT_DESTROY (&ctx);
+  B85_CONTEXT_DESTROY (&ctx2);
   return rv;
 }
 
@@ -192,8 +192,8 @@ static b85_result_t b85_test_##name () { \
   { \
     printf ( \
       "  FAIL -> %s (expected %s, got %s)\n", \
-      #name, base85_debug_error_string (expected), \
-      base85_debug_error_string (result) \
+      #name, B85_DEBUG_ERROR_STRING (expected), \
+      B85_DEBUG_ERROR_STRING (result) \
     ); \
   } \
   ++total; \
