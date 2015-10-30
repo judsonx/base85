@@ -123,7 +123,7 @@ b85_wrapper (handler_t handler, FILE *fh_in, FILE *fh_out)
   return rv;
 }
 
-int
+static int
 open_file_handles (int argc, char *argv[], FILE **fh_in, FILE **fh_out)
 {
   FILE *in = NULL;
@@ -159,7 +159,7 @@ open_file_handles (int argc, char *argv[], FILE **fh_in, FILE **fh_out)
   return 0;
 }
 
-void
+static void
 close_file_handles (int argc, FILE **fh_in, FILE **fh_out)
 {
   switch (argc)
