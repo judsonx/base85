@@ -177,6 +177,9 @@ close_file_handles (int argc, FILE **fh_in, FILE **fh_out)
 int
 main (int argc, char *argv[])
 {
+  if (argc < 2 || argc > 4)
+    return usage (argv[0]);
+
   FILE *fh_in = stdin;
   FILE *fh_out = stdout;
 
