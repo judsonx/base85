@@ -8,6 +8,15 @@
 static const size_t ENCODED_LINE_LENGTH = 80;
 static const size_t INPUT_BUFFER_MAX = 1024;
 
+/// Wrapper for performing a write operation and returning 1 on error.
+#define TRY_WRITE(buf, cb, fh, error_val) do { \
+  if (cb != fwrite (buf, 1, cb, fh)) \
+  { \
+    perror ("* Write error"); \
+    return error_val; \
+  } \
+} while (0);
+
 static int
 usage (const char *name)
 {
@@ -15,28 +24,29 @@ usage (const char *name)
   return 2;
 }
 
-static size_t
+static int
 print_max_width (
-  FILE *fh, const char *buf, size_t buf_cb, size_t width, size_t offset )
+  FILE *fh, const char *buf, size_t buf_cb, size_t width, size_t *offset )
 {
   // How many bytes were written to the last row.
-  size_t rv = (buf_cb + offset) % width;
+  size_t rv = (buf_cb + *offset) % width;
 
   while (buf_cb)
   {
-    size_t cb = width - offset;
+    size_t cb = width - *offset;
     if (buf_cb < cb)
       cb = buf_cb;
 
-    (void) fwrite (buf, 1, cb, fh);
-    if (cb == width - offset)
-      (void) fwrite ("\n", 1, 1, fh);
+    TRY_WRITE (buf, cb, fh, 1)
+    if (cb == width - *offset)
+      TRY_WRITE ("\n", 1, fh, 1)
 
     buf_cb -= cb;
     buf += cb;
-    offset = 0;
+    *offset = 0;
   }
-  return rv;
+  *offset = rv;
+  return 0;
 }
 
 static b85_result_t
@@ -56,9 +66,8 @@ b85_encode (struct base85_context_t *ctx, FILE *fh_in, FILE *fh_out)
       return rv;
 
     out = B85_GET_OUTPUT (ctx, &cb);
-    print_offset = print_max_width (
-      fh_out, out, cb, ENCODED_LINE_LENGTH, print_offset
-    );
+    if (print_max_width (fh_out, out, cb, ENCODED_LINE_LENGTH, &print_offset))
+      return B85_E_UNSPECIFIED;
     B85_CLEAR_OUTPUT (ctx);
   }
   rv = B85_ENCODE_LAST (ctx);
@@ -66,9 +75,10 @@ b85_encode (struct base85_context_t *ctx, FILE *fh_in, FILE *fh_out)
     return rv;
 
   out = B85_GET_OUTPUT (ctx, &cb);
-  print_offset = print_max_width (fh_out, out, cb, ENCODED_LINE_LENGTH, print_offset);
+  if (print_max_width (fh_out, out, cb, ENCODED_LINE_LENGTH, &print_offset))
+    return B85_E_UNSPECIFIED;
   if (print_offset)
-    (void) fwrite ("\n", 1, 1, fh_out);
+    TRY_WRITE ("\n", 1, fh_out, B85_E_UNSPECIFIED)
 
   return B85_E_OK;
 }
@@ -89,7 +99,7 @@ b85_decode (struct base85_context_t *ctx, FILE *fh_in, FILE *fh_out)
 
     size_t out_cb;
     out = B85_GET_OUTPUT (ctx, &out_cb);
-    (void) fwrite (out, 1, out_cb, fh_out);
+    TRY_WRITE (out, out_cb, fh_out, B85_E_UNSPECIFIED)
     B85_CLEAR_OUTPUT (ctx);
   }
   rv = B85_DECODE_LAST (ctx);
@@ -98,7 +108,7 @@ b85_decode (struct base85_context_t *ctx, FILE *fh_in, FILE *fh_out)
 
   size_t out_cb;
   out = B85_GET_OUTPUT (ctx, &out_cb);
-  (void) fwrite (out, 1, out_cb, fh_out);
+  TRY_WRITE (out, out_cb, fh_out, B85_E_UNSPECIFIED)
 
   return B85_E_OK;
 }
@@ -112,6 +122,8 @@ b85_wrapper (handler_t handler, FILE *fh_in, FILE *fh_out)
   b85_result_t rv = B85_CONTEXT_INIT (&ctx);
   if (B85_E_OK == rv)
     rv = handler (&ctx, fh_in, fh_out);
+  if (B85_E_OK == rv && ferror (fh_in))
+    rv = B85_E_UNSPECIFIED;
   if (rv)
   {
     fprintf (
