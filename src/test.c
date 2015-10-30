@@ -1,3 +1,5 @@
+/* Copyright 2015 Judson Weissert; See LICENSE file. */
+
 #include "base85.h"
 
 #include <stdbool.h>

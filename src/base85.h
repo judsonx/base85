@@ -1,3 +1,5 @@
+/* Copyright 2015 Judson Weissert; See LICENSE file. */
+
 #if !defined (BASE85_H__INCLUDED__)
 #define BASE85_H__INCLUDED__
 
