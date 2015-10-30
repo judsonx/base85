@@ -1,4 +1,4 @@
-#include "base85/base85.h"
+#include "base85.h"
 
 #include <stdbool.h>
 #include <stdlib.h>
