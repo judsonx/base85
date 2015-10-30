@@ -23,7 +23,7 @@ Currently, tests only exist for the 'ascii85' encoder/decoder.
 
 ## CLI
 
-The command line utilities `ascii85`` and `z85` can be used to encode and
+The command line utilities `ascii85` and `z85` can be used to encode and
 decode data from **stdin**/**stdout** or from files.
 
 Read from **stdin** and write to **stdout**:
