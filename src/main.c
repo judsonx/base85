@@ -66,8 +66,9 @@ b85_encode (struct base85_context_t *ctx, FILE *fh_in, FILE *fh_out)
     return rv;
 
   out = B85_GET_OUTPUT (ctx, &cb);
-  (void) print_max_width (fh_out, out, cb, ENCODED_LINE_LENGTH, print_offset);
-  (void) fwrite ("\n", 1, 1, fh_out);
+  print_offset = print_max_width (fh_out, out, cb, ENCODED_LINE_LENGTH, print_offset);
+  if (print_offset)
+    (void) fwrite ("\n", 1, 1, fh_out);
 
   return B85_E_OK;
 }
