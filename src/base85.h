@@ -4,6 +4,7 @@
 #define BASE85_H__INCLUDED__
 
 #include <stddef.h>
+#include <stdint.h>
 
 #if defined (B85_ZEROMQ)
 #define B85_NAME(name) z85_##name
@@ -68,16 +69,16 @@ B85_ERROR_STRING (b85_result_t val);
 struct base85_context_t
 {
   /// Bytes "on deck" for encoding/decoding. Unsigned is important.
-  unsigned char hold[5];
+  uint8_t hold[5];
 
   /// The current hold position (i.e. how many bytes are currently in hold).
   size_t pos;
 
   /// Output buffer, memory is managed by the encode/decode functions.
-  char *out;
+  uint8_t *out;
 
   /// Current output position.
-  char *out_pos;
+  uint8_t *out_pos;
 
   /// Number of bytes allocated for the out buffer.
   size_t out_cb;
@@ -87,13 +88,13 @@ struct base85_context_t
 
   /// Internal state (used for keeping track of the header/footer during
   /// decoding).
-  unsigned char state;
+  uint8_t state;
 };
 
 /// Gets the output from @a ctx.
 /// Returns the number of available bytes in @a cb.
 /// @pre @a ctx is valid.
-char *
+uint8_t *
 B85_GET_OUTPUT (struct base85_context_t *ctx, size_t *cb);
 
 /// Gets the number of input bytes processed by @a ctx.
@@ -120,21 +121,21 @@ B85_CONTEXT_RESET (struct base85_context_t *ctx);
 void
 B85_CONTEXT_DESTROY (struct base85_context_t *ctx);
 
-/// Encodes @a cb_b characters from @a b, and stores the result in @a ctx.
+/// Encodes @a cb_b bytes from @a b, and stores the result in @a ctx.
 /// @pre @a b must contain at least @a cb_b bytes, and @a ctx must be a valid
 /// context. 
 ///
 /// Note: B85_ENCODE_LAST() must be called in order to finalize the encode
 /// operation.
 b85_result_t
-B85_ENCODE (const char *b, size_t cb_b, struct base85_context_t *ctx);
+B85_ENCODE (const uint8_t *b, size_t cb_b, struct base85_context_t *ctx);
 
 /// Finalizes an encode operation that was initiated by calling base85_encode().
 /// @pre @a ctx must be valid.
 b85_result_t
 B85_ENCODE_LAST (struct base85_context_t *ctx);
 
-/// Decodes @a cb_b characters from @a b. The result is stored in @a ctx.
+/// Decodes @a cb_b bytes from @a b. The result is stored in @a ctx.
 /// @pre @a b must contain at least @a cb_b bytes, and @a ctx must be a valid
 /// context.
 ///
@@ -144,7 +145,7 @@ B85_ENCODE_LAST (struct base85_context_t *ctx);
 /// @return 0 for success.
 b85_result_t
 B85_DECODE (
-  const char *b, size_t cb_b, struct base85_context_t *ctx
+  const uint8_t *b, size_t cb_b, struct base85_context_t *ctx
 );
 
 /// Finalizes a decode operation that was initiated by calling B85_DECODE().

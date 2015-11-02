@@ -47,11 +47,11 @@ run_decode_test (const struct b85_test_t *entry)
   b85_result_t rv = B85_E_UNSPECIFIED;
 
   B85_TRY (B85_CONTEXT_INIT (&ctx))
-  B85_TRY (B85_DECODE (entry->input_.b_, entry->input_.cb_b_, &ctx))
+  B85_TRY (B85_DECODE ((void *) entry->input_.b_, entry->input_.cb_b_, &ctx))
   B85_TRY (B85_DECODE_LAST (&ctx))
 
   size_t cb;
-  char *out = B85_GET_OUTPUT (&ctx, &cb);
+  uint8_t *out = B85_GET_OUTPUT (&ctx, &cb);
   B85_TRY (check_cb (cb, entry->expected_.cb_b_))
   B85_TRY (check_bytes (out, entry->expected_.b_, cb))
 
@@ -67,16 +67,16 @@ run_encode_test (const struct b85_test_t *entry)
   struct base85_context_t ctx2 = { .out = NULL };
 
   b85_result_t rv = B85_E_UNSPECIFIED;
-  char *out = NULL;
+  uint8_t *out = NULL;
   B85_TRY (B85_CONTEXT_INIT (&ctx))
   B85_TRY (B85_CONTEXT_INIT (&ctx2))
-  B85_TRY (B85_ENCODE (entry->input_.b_, entry->input_.cb_b_, &ctx))
+  B85_TRY (B85_ENCODE ((void *) entry->input_.b_, entry->input_.cb_b_, &ctx))
   B85_TRY (B85_ENCODE_LAST (&ctx))
 
   size_t cb;
   out = B85_GET_OUTPUT (&ctx, &cb);
   B85_TRY (check_cb (cb, entry->expected_.cb_b_))
-  size_t result_len = strlen (out);
+  size_t result_len = strlen ((char *) out);
   B85_TRY (check_cb (result_len, entry->expected_.cb_b_))
   B85_TRY (check_bytes (out, entry->expected_.b_, result_len))
   B85_TRY (B85_DECODE (out, result_len, &ctx2))
@@ -96,14 +96,14 @@ error_exit:
 static b85_result_t
 b85_test_allbytes ()
 {
-  char input[256];
+  uint8_t input[256];
   for (size_t i = 0; i < 256; ++i)
-    input[i] = (unsigned char) i;
+    input[i] = (uint8_t) i;
 
   struct base85_context_t ctx;
   struct base85_context_t ctx2 = { .out = NULL };
   b85_result_t rv = B85_E_UNSPECIFIED;
-  char *out = NULL;
+  uint8_t *out = NULL;
   B85_TRY (B85_CONTEXT_INIT (&ctx))
   B85_TRY (B85_CONTEXT_INIT (&ctx2))
   B85_TRY (B85_ENCODE (input, 256, &ctx))
@@ -131,14 +131,14 @@ b85_test_more_data ()
   static const size_t INPUT_CHUNK_SIZE = 2048;
   static const size_t N_ITERATIONS = 2000;
 
-  char input[INPUT_CHUNK_SIZE];
+  uint8_t input[INPUT_CHUNK_SIZE];
   for (size_t i = 0; i < INPUT_CHUNK_SIZE; ++i)
-    input[i] = (unsigned char) i;
+    input[i] = (uint8_t) i;
 
   struct base85_context_t ctx;
   struct base85_context_t ctx2 = { .out = NULL };
   b85_result_t rv = B85_E_UNSPECIFIED;
-  char *out = NULL;
+  uint8_t *out = NULL;
   B85_TRY (B85_CONTEXT_INIT (&ctx))
   B85_TRY (B85_CONTEXT_INIT (&ctx2))
 
@@ -166,15 +166,6 @@ error_exit:
   B85_CONTEXT_DESTROY (&ctx);
   B85_CONTEXT_DESTROY (&ctx2);
   return rv;
-}
-
-static b85_result_t
-b85_test_types ()
-{
-  // Some (most?) of the algorithms are assuming a 1 byte char.
-  if ((sizeof (char) != 1) || (sizeof (unsigned char) != 1))
-    return B85_E_UNSPECIFIED;
-  return B85_E_OK;
 }
 
 #define B85_CREATE_TEST(name, test, input, input_cb, encoded, encoded_cb) \
@@ -272,9 +263,6 @@ run_tests (int argc, char *argv[])
   size_t total = 0;
 
   start = clock ();
-
-  printf ("type sizes\n");
-  B85_RUN_EXPECT_SUCCESS (types)
 
   printf ("small tests:\n");
   B85_RUN_EXPECT_SUCCESS (s0)

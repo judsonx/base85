@@ -28,7 +28,7 @@ usage (const char *name)
 
 static int
 print_max_width (
-  FILE *fh, const char *buf, size_t buf_cb, size_t width, size_t *offset )
+  FILE *fh, const uint8_t *buf, size_t buf_cb, size_t width, size_t *offset )
 {
   // How many bytes were written to the last row.
   size_t rv = (buf_cb + *offset) % width;
@@ -54,13 +54,13 @@ print_max_width (
 static b85_result_t
 b85_encode (struct base85_context_t *ctx, FILE *fh_in, FILE *fh_out)
 {
-  char input[INPUT_BUFFER_MAX];
+  uint8_t input[INPUT_BUFFER_MAX];
   b85_result_t rv = B85_E_UNSPECIFIED;
 
   size_t print_offset = 0;
   size_t cb = 0;
   size_t input_cb;
-  char *out = NULL;
+  uint8_t *out = NULL;
   while ((input_cb = fread (input, 1, INPUT_BUFFER_MAX, fh_in)))
   {
     rv = B85_ENCODE (input, input_cb, ctx);
@@ -88,11 +88,11 @@ b85_encode (struct base85_context_t *ctx, FILE *fh_in, FILE *fh_out)
 static b85_result_t
 b85_decode (struct base85_context_t *ctx, FILE *fh_in, FILE *fh_out)
 {
-  char input[INPUT_BUFFER_MAX];
+  uint8_t input[INPUT_BUFFER_MAX];
   b85_result_t rv = B85_E_UNSPECIFIED;
 
   size_t input_cb;
-  char *out = NULL;
+  uint8_t *out = NULL;
   while ((input_cb = fread (input, 1, INPUT_BUFFER_MAX, fh_in)))
   {
     rv = B85_DECODE (input, input_cb, ctx);

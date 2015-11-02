@@ -16,13 +16,13 @@
 #define B85_G_DECODE g_ascii85_decode
 #endif
 
-static unsigned char B85_G_DECODE[256];
+static uint8_t B85_G_DECODE[256];
 
-static const char B85_HEADER0 = '<';
-static const char B85_HEADER1 = '~';
-static const char B85_FOOTER0 = '~';
-static const char B85_FOOTER1 = '>';
-static const char B85_ZERO_CHAR = 'z';
+static const uint8_t B85_HEADER0 = '<';
+static const uint8_t B85_HEADER1 = '~';
+static const uint8_t B85_FOOTER0 = '~';
+static const uint8_t B85_FOOTER1 = '>';
+static const uint8_t B85_ZERO_CHAR = 'z';
 
 typedef enum
 {
@@ -38,9 +38,9 @@ typedef enum
 
 /// State transitions for handling ascii85 header/footer.
 static bool
-base85_handle_state (char c, struct base85_context_t *ctx)
+base85_handle_state (uint8_t c, struct base85_context_t *ctx)
 {
-  unsigned char *state = &ctx->state;
+  uint8_t *state = &ctx->state;
   switch (*state)
   {
   case B85_S_START:
@@ -65,7 +65,7 @@ base85_handle_state (char c, struct base85_context_t *ctx)
 
     // Important, have to add B85_HEADER0 char to the hold.
     // NOTE: Assumes that B85_HEADER0 is in the alphabet.
-    ctx->hold[ctx->pos++] = B85_G_DECODE[(unsigned) B85_HEADER0] - 1;
+    ctx->hold[ctx->pos++] = B85_G_DECODE[B85_HEADER0] - 1;
     *state = B85_S_NO_HEADER;
     return false;
 
@@ -136,7 +136,7 @@ B85_ERROR_STRING (b85_result_t val)
 #define B85_G_ENCODE g_z85_encode
 
 /// ZeroMQ (Z85) alphabet.
-static const unsigned char B85_G_ENCODE[] = {
+static const uint8_t B85_G_ENCODE[] = {
   '0', '1', '2', '3', '4', '5', '6', '7',
   '8', '9', 'a', 'b', 'c', 'd', 'e', 'f',
   'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
@@ -154,7 +154,7 @@ static const unsigned char B85_G_ENCODE[] = {
 
 #define B85_G_ENCODE g_ascii85_encode
 /// Ascii85 alphabet.
-static const unsigned char B85_G_ENCODE[] = {
+static const uint8_t B85_G_ENCODE[] = {
   '!', '"', '#', '$', '%', '&', '\'', '(',
   ')', '*', '+', ',', '-', '.', '/', '0',
   '1', '2', '3', '4', '5', '6', '7', '8',
@@ -180,7 +180,7 @@ base85_decode_init ()
   // NOTE: Assumes B85_G_DECODE[] was implicitly initialized with zeros.
   for (size_t i = 0; i < dimof (B85_G_ENCODE); ++i)
   {
-    unsigned char c = B85_G_ENCODE[i];
+    uint8_t c = B85_G_ENCODE[i];
     B85_G_DECODE[c] = i + 1;
   }
 }
@@ -194,7 +194,7 @@ base85_critical_state (b85_state_t state)
 
 /// Returns true if @a c is a white space character.
 static bool
-base85_whitespace (char c)
+base85_whitespace (uint8_t c)
 {
   switch (c)
   {
@@ -208,7 +208,7 @@ base85_whitespace (char c)
 }
 
 static bool
-base85_can_skip (char c, b85_state_t state)
+base85_can_skip (uint8_t c, b85_state_t state)
 {
   return !base85_critical_state (state) && base85_whitespace (c);
 }
@@ -230,7 +230,7 @@ base85_context_grow (struct base85_context_t *ctx)
   // TODO: Refine size, and fallback strategy.
   size_t size = ctx->out_cb * 2;
   ptrdiff_t offset = ctx->out_pos - ctx->out;
-  char *buffer = realloc (ctx->out, size);
+  uint8_t *buffer = realloc (ctx->out, size);
   if (!buffer)
   {
     // Try a smaller allocation.
@@ -255,7 +255,7 @@ base85_context_request_memory (struct base85_context_t *ctx, size_t request)
   return base85_context_grow (ctx);
 }
 
-char *
+uint8_t *
 B85_GET_OUTPUT (struct base85_context_t *ctx, size_t *cb)
 {
   if (!ctx || !cb)
@@ -325,7 +325,7 @@ B85_CONTEXT_DESTROY (struct base85_context_t *ctx)
   if (!ctx)
     return;
 
-  char *out = ctx->out;
+  uint8_t *out = ctx->out;
   ctx->out = NULL;
   ctx->out_pos = NULL;
   ctx->out_cb = 0;
@@ -335,7 +335,7 @@ B85_CONTEXT_DESTROY (struct base85_context_t *ctx)
 static b85_result_t
 base85_encode_strict (struct base85_context_t *ctx)
 {
-  unsigned char *h = ctx->hold;
+  uint8_t *h = ctx->hold;
   uint32_t v = h[0] << 24 | h[1] << 16 | h[2] << 8 | h[3];
 
   ctx->pos = 0;
@@ -368,7 +368,7 @@ base85_encode_strict (struct base85_context_t *ctx)
 }
 
 b85_result_t
-B85_ENCODE (const char *b, size_t cb_b, struct base85_context_t *ctx)
+B85_ENCODE (const uint8_t *b, size_t cb_b, struct base85_context_t *ctx)
 {
   if (!ctx || (cb_b && !b))
     return B85_E_API_MISUSE;
@@ -383,7 +383,8 @@ B85_ENCODE (const char *b, size_t cb_b, struct base85_context_t *ctx)
     if (4 == ctx->pos)
     {
       b85_result_t rv = base85_encode_strict (ctx);
-      if (rv) return rv;
+      if (rv)
+        return rv;
     }
   }
 
@@ -423,7 +424,7 @@ static b85_result_t
 base85_decode_strict (struct base85_context_t *ctx)
 {
   uint32_t v = 0;
-  unsigned char *b = ctx->hold;
+  uint8_t *b = ctx->hold;
 
   b85_result_t rv = B85_E_UNSPECIFIED;
   rv = base85_context_request_memory (ctx, 4);
@@ -450,7 +451,7 @@ base85_decode_strict (struct base85_context_t *ctx)
 }
 
 b85_result_t
-B85_DECODE (const char *b, size_t cb_b, struct base85_context_t *ctx)
+B85_DECODE (const uint8_t *b, size_t cb_b, struct base85_context_t *ctx)
 {
   if (!ctx || (cb_b && !b))
     return B85_E_API_MISUSE;
@@ -468,7 +469,7 @@ B85_DECODE (const char *b, size_t cb_b, struct base85_context_t *ctx)
     if (B85_S_INVALID == ctx->state)
       return B85_E_BAD_FOOTER;
 
-    char c = *b++;
+    uint8_t c = *b++;
     ctx->processed++;
 
     if (base85_can_skip (c, (b85_state_t) ctx->state))
@@ -491,7 +492,7 @@ B85_DECODE (const char *b, size_t cb_b, struct base85_context_t *ctx)
     }
 #endif
 
-    unsigned char x = B85_G_DECODE[(unsigned) c];
+    uint8_t x = B85_G_DECODE[c];
     if (!x--)
       return B85_E_INVALID_CHAR;
 
