@@ -161,10 +161,6 @@ open_file_handles (int argc, char *argv[], FILE **fh_in, FILE **fh_out)
       (void) fclose (out);
       return 1;
     }
-  case 2:
-    break;
-  default:
-    return usage (argv[0]);
   }
 
   if (in)
@@ -214,7 +210,9 @@ main (int argc, char *argv[])
     rv = b85_wrapper (b85_decode, fh_in, fh_out);
   }
   else
+  {
     return usage (argv[0]);
+  }
 
   close_file_handles (argc, &fh_in, &fh_out);
   return rv;
