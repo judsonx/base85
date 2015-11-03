@@ -197,16 +197,14 @@ main (int argc, char *argv[])
   b85_result_t rv = B85_E_UNSPECIFIED;
   if (!strcmp (argv[1], "-e"))
   {
-    int result = open_file_handles (argc, argv, &fh_in, &fh_out);
-    if (result)
-      return result;
+    if (open_file_handles (argc, argv, &fh_in, &fh_out))
+      return 1;
     rv = b85_wrapper (b85_encode, fh_in, fh_out);
   }
   else if (!strcmp (argv[1], "-d"))
   {
-    int result = open_file_handles (argc, argv, &fh_in, &fh_out);
-    if (result)
-      return result;
+    if (open_file_handles (argc, argv, &fh_in, &fh_out))
+      return 1;
     rv = b85_wrapper (b85_decode, fh_in, fh_out);
   }
   else
