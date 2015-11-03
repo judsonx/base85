@@ -215,5 +215,5 @@ main (int argc, char *argv[])
   }
 
   close_file_handles (argc, &fh_in, &fh_out);
-  return rv;
+  return B85_E_OK != rv;
 }
